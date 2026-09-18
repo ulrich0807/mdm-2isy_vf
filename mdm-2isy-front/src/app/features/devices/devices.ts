@@ -463,10 +463,14 @@ export class Devices implements OnInit {
   canSendCommand(terminal: Terminal): boolean {
     return terminal.enrollment_status === 'enrolled'
       && terminal.management_state !== 'wiped'
-      && Boolean(terminal.public_id);
+      && Boolean(terminal.public_id)
+      && terminal.lic?.statut === 'Active';
   }
 
   commandActionTitle(terminal: Terminal): string {
+    if (!terminal.lic || terminal.lic.statut !== 'Active') {
+      return 'Commande indisponible : le terminal doit avoir une licence active.';
+    }
     if (terminal.enrollment_status !== 'enrolled') {
       return 'Commande indisponible : le terminal doit être enrôlé.';
     }

@@ -113,6 +113,12 @@ class TerminalCommandController extends Controller
         ?string $forcedType = null,
         bool $idempotencyKeyRequired = false,
     ): JsonResponse {
+        if (!$terminal->lic || $terminal->lic->statut !== 'Active') {
+            throw ValidationException::withMessages([
+                'terminal' => 'Le terminal doit avoir une licence active pour recevoir des commandes.',
+            ]);
+        }
+
         $input = $request->all();
 
         if ($forcedType !== null) {
