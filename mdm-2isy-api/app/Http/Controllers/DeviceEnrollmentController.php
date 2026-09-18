@@ -62,11 +62,23 @@ class DeviceEnrollmentController extends Controller
                 $this->ensureDeviceIsUnique($enrollmentToken->organization_id, $data);
 
                 $timestamp = now();
-                $terminal = new Terminal;
+                $terminal = null;
+
+                if (isset($data['imei'])) {
+                    $terminal = Terminal::query()
+                        ->where('imei', $data['imei'])
+                        ->where('enrollment_status', 'pending')
+                        ->first();
+                }
+
+                if (!$terminal) {
+                    $terminal = new Terminal;
+                    $terminal->public_id = (string) Str::uuid();
+                }
+
                 $terminal->forceFill([
-                    'public_id' => (string) Str::uuid(),
                     'organization_id' => $enrollmentToken->organization_id,
-                    'device_group_id' => $enrollmentToken->device_group_id,
+                    'device_group_id' => $terminal->device_group_id ?? $enrollmentToken->device_group_id,
                     'device_uid' => $data['device_uid'],
                     'imei' => $data['imei'] ?? null,
                     'serial_number' => $data['serial_number'] ?? null,
@@ -125,9 +137,6 @@ class DeviceEnrollmentController extends Controller
         }
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
     private function ensureDeviceIsUnique(int $organizationId, array $data): void
     {
         if (Terminal::query()
@@ -139,13 +148,13 @@ class DeviceEnrollmentController extends Controller
             ]);
         }
 
-        if (
-            isset($data['imei'])
-            && Terminal::query()->where('imei', $data['imei'])->exists()
-        ) {
-            throw ValidationException::withMessages([
-                'imei' => 'This IMEI is already enrolled.',
-            ]);
+        if (isset($data['imei'])) {
+            $existing = Terminal::query()->where('imei', $data['imei'])->first();
+            if ($existing && $existing->enrollment_status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'imei' => 'This IMEI is already enrolled and active.',
+                ]);
+            }
         }
     }
 

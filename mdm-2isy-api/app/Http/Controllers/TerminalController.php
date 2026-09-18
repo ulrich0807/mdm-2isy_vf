@@ -20,6 +20,7 @@ class TerminalController extends Controller
             ->with([
                 'organization:id,name,public_id',
                 'deviceGroup:id,name',
+                'lic:id,term_id,statut,exp_le',
             ])
             ->when($organization, fn ($query) => $query->whereBelongsTo($organization))
             ->orderByDesc('last_seen_at')
@@ -39,6 +40,7 @@ class TerminalController extends Controller
             'data' => $this->accessibleTerminal($request, $id)->load([
                 'organization:id,name,public_id',
                 'deviceGroup:id,name',
+                'lic:id,term_id,statut,exp_le',
             ]),
         ]);
     }
@@ -101,6 +103,22 @@ class TerminalController extends Controller
             'success' => true,
             'message' => 'Affectation du groupe mise à jour.',
             'data' => $terminal->fresh()->load('deviceGroup:id,name'),
+        ]);
+    }
+
+    public function updateLivreur(Request $request, int $id)
+    {
+        $terminal = $this->accessibleTerminal($request, $id);
+        $data = $request->validate([
+            'livreur' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $terminal->update(['livreur' => $data['livreur']]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Livreur mis à jour avec succès.',
+            'data' => $terminal->fresh()->load(['deviceGroup:id,name', 'lic:id,term_id,statut,exp_le']),
         ]);
     }
 

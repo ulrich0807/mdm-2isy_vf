@@ -77,6 +77,11 @@ class Terminal extends Model
         return $this->hasMany(DeviceCommand::class);
     }
 
+    public function lic(): HasOne
+    {
+        return $this->hasOne(Lic::class, 'term_id');
+    }
+
     protected function connectivityStatus(): Attribute
     {
         return Attribute::make(

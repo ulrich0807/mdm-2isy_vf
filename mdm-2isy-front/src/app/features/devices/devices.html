@@ -150,7 +150,10 @@
                 <div *ngIf="term.public_id" class="small text-muted font-monospace text-break">{{ term.public_id }}</div>
               </td>
               <td class="py-3">
-                <div class="fw-bold text-dark">{{ terminalLabel(term) }}</div>
+                <div class="fw-bold text-dark d-flex align-items-center">
+                  {{ terminalLabel(term) }}
+                  <button type="button" class="btn btn-link btn-sm p-0 ms-2 text-muted" (click)="modifierLivreur(term)" title="Modifier le livreur">✏️</button>
+                </div>
                 <span class="badge bg-light text-dark border mt-1 mb-1">📁 {{ terminalGroupName(term) }}</span>
                 <select
                   class="form-select form-select-sm mt-1"
@@ -193,6 +196,10 @@
                   <span class="badge" [ngClass]="terminalManagementStateClass(term)">
                     Gestion : {{ terminalManagementState(term) }}
                   </span>
+                </div>
+                <div class="mt-1">
+                  <span *ngIf="term.lic && term.lic.statut === 'Active'" class="badge bg-success bg-opacity-10 text-success border border-success">🔑 Licence Active</span>
+                  <span *ngIf="!term.lic || term.lic.statut !== 'Active'" class="badge bg-danger bg-opacity-10 text-danger border border-danger">⚠️ Pas de licence</span>
                 </div>
                 <div class="small text-muted mt-1">Dernière connexion : {{ term.last_seen_at ? (term.last_seen_at | date:'dd/MM/yyyy HH:mm') : '—' }}</div>
               </td>

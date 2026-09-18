@@ -36,6 +36,12 @@ export class TermService {
     });
   }
 
+  updateLivreur(id: number, livreur: string): Observable<ApiResponse<Terminal>> {
+    return this.http.put<ApiResponse<Terminal>>(`${this.apiUrl}/${id}/livreur`, {
+      livreur: livreur,
+    });
+  }
+
   getCommands(terminalPublicId: string): Observable<ApiResponse<DeviceCommand[]>> {
     return this.http.get<ApiResponse<DeviceCommand[]>>(
       `${this.apiUrl}/${encodeURIComponent(terminalPublicId)}/commands`,

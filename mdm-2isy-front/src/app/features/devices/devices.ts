@@ -335,6 +335,30 @@ export class Devices implements OnInit {
     });
   }
 
+  modifierLivreur(terminal: Terminal): void {
+    const currentName = this.terminalLabel(terminal);
+    const newName = prompt('Nom du livreur:', currentName === '—' ? '' : currentName);
+    if (newName !== null && newName.trim() !== currentName) {
+      this.contextError = '';
+      this.termSvc.updateLivreur(terminal.id, newName.trim()).subscribe({
+        next: (res) => {
+          if (res.success) {
+            const index = this.terminaux.findIndex((item) => item.id === terminal.id);
+            if (index !== -1) {
+              this.terminaux[index] = res.data;
+            }
+            this.filtrer();
+          }
+          this.cdRef.detectChanges();
+        },
+        error: (err) => {
+          this.contextError = this.apiError(err, "Impossible de modifier le livreur du terminal.");
+          this.cdRef.detectChanges();
+        },
+      });
+    }
+  }
+
   ouvrirModal(): void {
     if (this.isSuperAdmin && this.selectedOrganizationId === null) {
       this.contextError = 'Sélectionnez une organisation avant de créer un enrôlement.';
