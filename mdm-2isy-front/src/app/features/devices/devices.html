@@ -197,38 +197,23 @@
                 <div class="small text-muted mt-1">Dernière connexion : {{ term.last_seen_at ? (term.last_seen_at | date:'dd/MM/yyyy HH:mm') : '—' }}</div>
               </td>
               <td class="py-3 px-4 text-end">
-                <div class="d-inline-flex text-nowrap">
+                <div class="d-flex flex-wrap gap-2 justify-content-end" style="max-width: 250px; margin-left: auto;">
                   <button
                     type="button"
                     (click)="envoyerCommande(term, 'locate')"
-                    class="btn btn-sm btn-light border me-1 fw-bold"
+                    class="btn btn-sm btn-light border fw-bold"
                     [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
                     [title]="commandActionTitle(term) || 'Demander la position GPS'"
                     [attr.aria-label]="'Localiser le terminal ' + terminalImei(term)"
-                  >📍 Localiser</button>
+                  >📍 Loc.</button>
                   <button
                     type="button"
                     (click)="envoyerCommande(term, 'lock')"
-                    class="btn btn-sm btn-light border me-1 fw-bold"
+                    class="btn btn-sm btn-light border fw-bold"
                     [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
                     [title]="commandActionTitle(term) || 'Verrouiller l\'écran ou activer Kiosque'"
                     [attr.aria-label]="'Verrouiller le terminal ' + terminalImei(term)"
-                  >🔒 Verrouiller</button>
-                  <button
-                    type="button"
-                    (click)="ouvrirModalWipe(term)"
-                    class="btn btn-sm btn-light border text-danger me-1 fw-bold"
-                    [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
-                    [title]="commandActionTitle(term) || 'Remettre le téléphone à zéro'"
-                    [attr.aria-label]="'Effacer le terminal ' + terminalImei(term)"
-                  >🗑️ Effacer</button>
-                  <button
-                    type="button"
-                    (click)="supprimerTerminal(term)"
-                    class="btn btn-sm btn-light border text-danger me-1 fw-bold"
-                    [attr.aria-label]="'Supprimer le terminal ' + terminalImei(term)"
-                    title="Supprimer de la base de données"
-                  >❌ Supprimer</button>
+                  >🔒 Verrou.</button>
                   <button
                     type="button"
                     (click)="toggleCommandHistory(term)"
@@ -237,7 +222,22 @@
                     [attr.aria-expanded]="isCommandHistoryExpanded(term)"
                     [attr.aria-label]="'Historique des commandes du terminal ' + terminalImei(term)"
                     title="Voir l'historique des requêtes MDM"
-                  >🕘 Historique</button>
+                  >🕘 Hist.</button>
+                  <button
+                    type="button"
+                    (click)="ouvrirModalWipe(term)"
+                    class="btn btn-sm btn-light border text-danger fw-bold"
+                    [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
+                    [title]="commandActionTitle(term) || 'Remettre le téléphone à zéro'"
+                    [attr.aria-label]="'Effacer le terminal ' + terminalImei(term)"
+                  >🗑️ Effacer</button>
+                  <button
+                    type="button"
+                    (click)="supprimerTerminal(term)"
+                    class="btn btn-sm btn-light border text-danger fw-bold"
+                    [attr.aria-label]="'Supprimer le terminal ' + terminalImei(term)"
+                    title="Supprimer de la base de données"
+                  >❌ Suppr.</button>
                 </div>
                 <div *ngIf="isCommandSubmitting(term)" class="small text-muted mt-2">Mise en file...</div>
                 <div
