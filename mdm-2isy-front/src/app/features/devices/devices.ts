@@ -84,6 +84,11 @@ export class Devices implements OnInit {
   wipeError = '';
   wipeSubmitting = false;
 
+  afficherModalUninstall = false;
+  uninstallTerminal: Terminal | null = null;
+  uninstallPackage = '';
+  uninstallError = '';
+
   constructor(
     private termSvc: TermService,
     private organizationSvc: OrganizationService,
@@ -594,6 +599,44 @@ export class Devices implements OnInit {
         this.wipeError = message;
         this.wipePassword = '';
         this.wipeSubmitting = false;
+      },
+    );
+  }
+
+  ouvrirModalUninstall(terminal: Terminal): void {
+    if (!this.canSendCommand(terminal)) {
+      this.setCommandFeedback(terminal, 'danger', "Action refusée : le terminal n'est pas éligible.");
+      return;
+    }
+
+    this.uninstallTerminal = terminal;
+    this.uninstallPackage = '';
+    this.uninstallError = '';
+    this.afficherModalUninstall = true;
+  }
+
+  fermerModalUninstall(): void {
+    this.afficherModalUninstall = false;
+    this.uninstallTerminal = null;
+    this.uninstallPackage = '';
+    this.uninstallError = '';
+  }
+
+  confirmerUninstall(): void {
+    if (!this.uninstallTerminal || !this.uninstallPackage.trim()) {
+      return;
+    }
+
+    this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal)] = true;
+
+    this.issueCommandWithFeedback(
+      this.uninstallTerminal,
+      () => this.termSvc.uninstallApp(this.uninstallTerminal!.id, { packageName: this.uninstallPackage.trim() }),
+      "Commande de désinstallation mise en file.",
+      () => this.fermerModalUninstall(),
+      (message) => {
+        this.uninstallError = message;
+        this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal!)] = false;
       },
     );
   }

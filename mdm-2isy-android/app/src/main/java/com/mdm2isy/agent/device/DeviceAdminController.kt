@@ -45,6 +45,7 @@ interface DevicePolicyGateway {
     fun setCameraDisabled(disabled: Boolean)
     fun addUserRestriction(restriction: String)
     fun clearUserRestriction(restriction: String)
+    fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean
     fun resetPassword(password: String, flags: Int): Boolean
 }
 
@@ -90,6 +91,10 @@ class AndroidDevicePolicyGateway(
 
     override fun clearUserRestriction(restriction: String) {
         policyManager.clearUserRestriction(adminComponent, restriction)
+    }
+
+    override fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean {
+        return policyManager.setApplicationHidden(adminComponent, packageName, hidden)
     }
 
     override fun resetPassword(password: String, flags: Int): Boolean {
@@ -179,6 +184,11 @@ class DeviceAdminController(
                 gateway.setLockTaskPackages(arrayOf(policy.appKiosk))
             } else {
                 gateway.setLockTaskPackages(emptyArray())
+            }
+            
+            // Hide blacklisted apps
+            for (pkg in policy.blacklistApps) {
+                gateway.setApplicationHidden(pkg, true)
             }
         }
     }

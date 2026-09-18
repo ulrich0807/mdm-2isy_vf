@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TerminalCommandController extends Controller
 {
-    private const TYPES = ['locate', 'lock', 'wipe'];
+    private const TYPES = ['locate', 'lock', 'wipe', 'install_app', 'uninstall_app'];
 
     public function index(
         Request $request,
@@ -105,6 +105,19 @@ class TerminalCommandController extends Controller
         return $this->queue($request, $device, $actor, $commands, 'install_app');
     }
 
+    public function uninstallApp(
+        Request $request,
+        int $id,
+        DeviceCommandService $commands,
+    ): JsonResponse {
+        $actor = $this->administrator($request);
+        $device = $this->accessibleTerminalById($actor, $id);
+
+        $request->merge(['type' => 'uninstall_app']);
+
+        return $this->queue($request, $device, $actor, $commands, 'uninstall_app');
+    }
+
     private function queue(
         Request $request,
         Terminal $terminal,
@@ -130,12 +143,14 @@ class TerminalCommandController extends Controller
             'payload' => [
                 'sometimes',
                 'nullable',
-                'array:message,timeout_seconds,high_accuracy',
-                'max:3',
+                'array:message,timeout_seconds,high_accuracy,url,packageName',
+                'max:5',
             ],
             'payload.message' => ['sometimes', 'string', 'max:500'],
             'payload.timeout_seconds' => ['sometimes', 'integer', 'between:5,300'],
             'payload.high_accuracy' => ['sometimes', 'boolean'],
+            'payload.url' => ['sometimes', 'url'],
+            'payload.packageName' => ['sometimes', 'string', 'max:255'],
             'confirmation' => [
                 'required_if:type,wipe',
                 'prohibited_unless:type,wipe',
@@ -208,6 +223,8 @@ class TerminalCommandController extends Controller
             'locate' => ['timeout_seconds', 'high_accuracy'],
             'lock' => ['message'],
             'wipe' => [],
+            'install_app' => ['url', 'packageName'],
+            'uninstall_app' => ['packageName'],
         };
 
         $unexpectedKeys = array_diff(array_keys($payload), $allowedKeys);

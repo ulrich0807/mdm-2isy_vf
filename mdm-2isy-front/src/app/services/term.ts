@@ -66,4 +66,10 @@ export class TermService {
       { headers },
     );
   }
+
+  uninstallApp(id: number, payload: { packageName: string }): Observable<ApiResponse<void>> {
+    return this.http.post<ApiResponse<void>>(`${this.apiUrl}/${id}/uninstall-app`, {
+      payload: payload
+    });
+  }
 }

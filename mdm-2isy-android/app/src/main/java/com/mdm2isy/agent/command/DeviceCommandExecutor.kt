@@ -67,6 +67,7 @@ class DeviceCommandExecutor(
         KnownCommandType.LOCK -> executeLock(callback)
         KnownCommandType.WIPE -> executeWipe(callback)
         KnownCommandType.INSTALL_APP -> executeInstallApp(command, callback)
+        KnownCommandType.UNINSTALL_APP -> executeUninstallApp(command, callback)
         null -> immediate(
             callback,
             CommandExecutionResult.Failure(
@@ -196,6 +197,51 @@ class DeviceCommandExecutor(
         }
 
         return CommandExecutionHandle { /* Cannot easily cancel download in this simplified version */ }
+    }
+
+    private fun executeUninstallApp(
+        command: DeviceCommand,
+        callback: (CommandExecutionResult) -> Unit,
+    ): CommandExecutionHandle {
+        val packageName = command.payload.packageName
+        if (packageName.isNullOrBlank()) {
+            return immediate(
+                callback,
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.INVALID_COMMAND_PAYLOAD,
+                    "Le nom du package est manquant.",
+                ),
+            )
+        }
+
+        if (!adminController.status().isDeviceOwner) {
+            return immediate(
+                callback,
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.DEVICE_OWNER_REQUIRED,
+                    "La désinstallation silencieuse nécessite d'être Device Owner.",
+                ),
+            )
+        }
+
+        appInstaller.uninstallSilently(packageName) { success, error ->
+            val result = if (success) {
+                CommandExecutionResult.Success(
+                    CommandExecutionProof(
+                        executedAt = executedAt(),
+                        message = "Désinstallation de l'application lancée avec succès.",
+                    ),
+                )
+            } else {
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.DEVICE_OPERATION_FAILED,
+                    error ?: "Erreur de désinstallation.",
+                )
+            }
+            callback(result)
+        }
+
+        return CommandExecutionHandle { }
     }
 
     private fun DeviceAdminOperationResult.Failed.toCommandFailure(): CommandExecutionResult.Failure {

@@ -251,6 +251,13 @@
                   >🗑️ Effacer</button>
                   <button
                     type="button"
+                    (click)="ouvrirModalUninstall(term)"
+                    class="btn btn-sm btn-light border text-danger fw-bold"
+                    [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
+                    title="Désinstaller une application"
+                  >🚫 Désinstaller</button>
+                  <button
+                    type="button"
                     (click)="supprimerTerminal(term)"
                     class="btn btn-sm btn-light border text-danger fw-bold"
                     [attr.aria-label]="'Supprimer le terminal ' + terminalImei(term)"
@@ -499,6 +506,49 @@
           class="btn btn-danger fw-bold px-4"
           [disabled]="!canConfirmWipe()"
         >{{ wipeSubmitting ? 'Mise en file...' : 'Effacer le terminal' }}</button>
+      </div>
+    </form>
+  </div>
+
+  <div
+    *ngIf="afficherModalUninstall"
+    class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3"
+    style="background-color: rgba(0,0,0,0.6); z-index: 1060;"
+  >
+    <form
+      (ngSubmit)="confirmerUninstall()"
+      class="card border-0 shadow-lg rounded-4 p-4 bg-white"
+      style="width: 100%; max-width: 500px;"
+    >
+      <h5 class="fw-bold text-dark mb-2">Désinstaller une application</h5>
+      <p class="text-muted small mb-3">
+        L'application sera désinstallée silencieusement sur le terminal.
+      </p>
+
+      <div *ngIf="uninstallError" class="alert alert-danger py-2 small">{{ uninstallError }}</div>
+
+      <div class="mb-4">
+        <label class="form-label small fw-bold text-muted">Nom du package (ex: com.whatsapp)</label>
+        <input
+          name="uninstallPackage"
+          type="text"
+          [(ngModel)]="uninstallPackage"
+          class="form-control font-monospace"
+          required
+        >
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button
+          type="button"
+          (click)="fermerModalUninstall()"
+          class="btn btn-light fw-bold px-4"
+        >Annuler</button>
+        <button
+          type="submit"
+          class="btn btn-danger fw-bold px-4"
+          [disabled]="!uninstallPackage"
+        >Désinstaller</button>
       </div>
     </form>
   </div>

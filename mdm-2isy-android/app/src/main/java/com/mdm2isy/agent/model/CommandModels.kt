@@ -23,7 +23,8 @@ enum class KnownCommandType(val wireValue: String) {
     LOCATE("locate"),
     LOCK("lock"),
     WIPE("wipe"),
-    INSTALL_APP("install_app");
+    INSTALL_APP("install_app"),
+    UNINSTALL_APP("uninstall_app");
 
     companion object {
         fun fromWireValue(value: String): KnownCommandType? = entries.firstOrNull {
@@ -134,6 +135,17 @@ data class CommandProof private constructor(
         }
 
         fun installApp(
+            message: String? = null,
+            executedAt: String? = null,
+        ): CommandProof {
+            requireMessage(message)
+            return CommandProof(
+                message = message,
+                executedAt = executedAt,
+            )
+        }
+
+        fun uninstallApp(
             message: String? = null,
             executedAt: String? = null,
         ): CommandProof {

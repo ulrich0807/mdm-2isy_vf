@@ -112,6 +112,7 @@ data class SecurityPolicy(
     val noUsb: Boolean = false,
     val noBt: Boolean = false,
     val pinFort: Boolean = false,
+    val blacklistApps: List<String> = emptyList(),
 )
 
 data class HeartbeatReceipt(

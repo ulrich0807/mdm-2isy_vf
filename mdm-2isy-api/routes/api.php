@@ -96,7 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/terminals/{id}/locate', [TerminalCommandController::class, 'locate'])->whereNumber('id');
     Route::post('/terminals/{id}/lock', [TerminalCommandController::class, 'lock'])->whereNumber('id');
     Route::post('/terminals/{id}/wipe', [TerminalCommandController::class, 'wipe'])->whereNumber('id');
-    Route::post('/terminals/{id}/install', [TerminalCommandController::class, 'install'])->whereNumber('id');
+    Route::post('/terminals/{id}/install-app', [TerminalCommandController::class, 'install'])->whereNumber('id');
+    Route::post('/terminals/{id}/uninstall-app', [TerminalCommandController::class, 'uninstallApp'])->whereNumber('id');
 
     // Gestion Licences
     Route::get('/lics', [LicController::class, 'index']);

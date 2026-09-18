@@ -82,6 +82,15 @@ internal object CommandResultCodec {
                         )
                     }
 
+                    KnownCommandType.UNINSTALL_APP -> {
+                        CommandResultRequest.succeeded(
+                            CommandProof.uninstallApp(
+                                message = proof.optionalString("message"),
+                                executedAt = proof.optionalString("executed_at"),
+                            ),
+                        )
+                    }
+
                     null -> CommandResultRequest.failed(
                         INVALID_PROOF,
                         "Le résultat local concerne un type de commande inconnu.",
@@ -134,6 +143,12 @@ internal object CommandResultCodec {
         KnownCommandType.INSTALL_APP -> {
             CommandResultRequest.succeeded(
                 CommandProof.installApp(proof.message, proof.executedAt),
+            )
+        }
+
+        KnownCommandType.UNINSTALL_APP -> {
+            CommandResultRequest.succeeded(
+                CommandProof.uninstallApp(proof.message, proof.executedAt),
             )
         }
 

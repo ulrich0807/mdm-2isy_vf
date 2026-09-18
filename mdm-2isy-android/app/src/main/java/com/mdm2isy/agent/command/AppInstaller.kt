@@ -59,4 +59,21 @@ class AppInstaller(private val context: Context) {
             }
         }
     }
+
+    fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit) {
+        try {
+            val packageInstaller = context.packageManager.packageInstaller
+            val intent = Intent("com.mdm2isy.agent.ACTION_UNINSTALL_COMPLETE")
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                System.currentTimeMillis().toInt(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+            packageInstaller.uninstall(packageName, pendingIntent.intentSender)
+            callback(true, null)
+        } catch (e: Exception) {
+            callback(false, e.message)
+        }
+    }
 }

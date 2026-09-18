@@ -62,7 +62,15 @@ internal object MdmJsonCodec {
                 noCam = it.optBoolean("no_cam", false),
                 noUsb = it.optBoolean("no_usb", false),
                 noBt = it.optBoolean("no_bt", false),
-                pinFort = it.optBoolean("pin_fort", false)
+                pinFort = it.optBoolean("pin_fort", false),
+                blacklistApps = it.optJSONArray("blacklist_apps")?.let { arr ->
+                    buildList(arr.length()) {
+                        for (i in 0 until arr.length()) {
+                            val str = arr.optString(i)
+                            if (str.isNotBlank()) add(str)
+                        }
+                    }
+                } ?: emptyList()
             )
         }
         HeartbeatReceipt(
@@ -156,6 +164,8 @@ internal object MdmJsonCodec {
                 message = payload.optionalString("message"),
                 timeoutSeconds = payload.optionalInteger("timeout_seconds"),
                 highAccuracy = payload.optionalBoolean("high_accuracy"),
+                url = payload.optionalString("url"),
+                packageName = payload.optionalString("packageName"),
             ),
             queuedAt = json.requiredString("queued_at"),
             sentAt = json.optionalString("sent_at"),

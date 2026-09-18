@@ -91,7 +91,7 @@ export interface CreatedEnrollment extends DeviceEnrollment {
   enrollment_payload: EnrollmentPayload;
 }
 
-export type DeviceCommandType = 'locate' | 'lock' | 'wipe';
+export type DeviceCommandType = 'locate' | 'lock' | 'wipe' | 'install_app' | 'uninstall_app';
 
 export type DeviceCommandStatus =
   | 'queued'

@@ -128,6 +128,7 @@ class DeviceHeartbeatController extends Controller
                     'no_usb' => $device->profil->no_usb,
                     'no_bt' => $device->profil->no_bt,
                     'pin_fort' => $device->profil->pin_fort,
+                    'blacklist_apps' => $device->profil->blacklist_apps,
                 ] : null,
             ],
         ]);
