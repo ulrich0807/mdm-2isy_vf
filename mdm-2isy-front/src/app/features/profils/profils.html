@@ -1,0 +1,112 @@
+<div class="container-fluid p-0 position-relative">
+  
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold m-0 text-dark">Politiques de Sécurité</h3>
+      <p class="text-muted small m-0">Gérez les restrictions matérielles et le Mode Kiosque</p>
+    </div>
+    <button (click)="ouvMod()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
+      + Créer un Profil
+    </button>
+  </div>
+
+  <!-- Affichage des Profils sous forme de Cartes -->
+  <div class="row g-4">
+    <div *ngIf="load" class="col-12 text-center py-5 text-muted">Chargement...</div>
+
+    <div *ngFor="let p of profs" class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+        
+        <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+          <h5 class="fw-bold m-0 text-dark">🛡️ {{ p.nom }}</h5>
+          <button (click)="delProf(p.id)" class="btn btn-sm btn-light border text-danger rounded-circle p-2" title="Supprimer">🗑️</button>
+        </div>
+
+        <div class="card-body px-4 pb-4">
+          
+          <!-- Mode Kiosque -->
+          <div class="p-3 rounded-3 mb-3 border" [ngClass]="p.kiosk ? 'bg-primary bg-opacity-10 border-primary' : 'bg-light'">
+            <div class="fw-bold small d-flex align-items-center gap-2" [ngClass]="p.kiosk ? 'text-primary' : 'text-muted'">
+              <span>📱</span> Mode Kiosque : {{ p.kiosk ? 'ACTIF' : 'INACTIF' }}
+            </div>
+            <div *ngIf="p.kiosk" class="small text-muted mt-1 fw-bold">App autorisée : {{ p.appKiosk }}</div>
+          </div>
+
+          <!-- Règles Matérielles -->
+          <div class="d-flex flex-column gap-2 small fw-bold text-muted mt-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Appareil Photo</span>
+              <span class="badge" [ngClass]="p.noCam ? 'bg-danger' : 'bg-success'">{{ p.noCam ? 'BLOQUÉ' : 'AUTORISÉ' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Transfert USB</span>
+              <span class="badge" [ngClass]="p.noUsb ? 'bg-danger' : 'bg-success'">{{ p.noUsb ? 'BLOQUÉ' : 'AUTORISÉ' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Connexion Bluetooth</span>
+              <span class="badge" [ngClass]="p.noBt ? 'bg-danger' : 'bg-success'">{{ p.noBt ? 'BLOQUÉ' : 'AUTORISÉE' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+              <span>Code PIN Fort Requis</span>
+              <span class="badge" [ngClass]="p.pinFort ? 'bg-primary' : 'bg-secondary'">{{ p.pinFort ? 'OUI' : 'NON' }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE DE CRÉATION -->
+  <div *ngIf="showMod" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+    <div class="card border-0 shadow-lg rounded-4 p-4 bg-white" style="width: 100%; max-width: 500px; animation: fadeIn 0.2s ease-in-out;">
+      <h5 class="fw-bold mb-4 text-dark">Nouveau Profil de Sécurité</h5>
+      
+      <div class="mb-4">
+        <label class="form-label small fw-bold text-muted">Nom du profil</label>
+        <input type="text" [(ngModel)]="nvProf.nom" class="form-control" placeholder="Ex: Livreur Strict">
+      </div>
+      
+      <!-- Switches (Interrupteurs) -->
+      <div class="mb-4 bg-light p-3 rounded-4 border">
+        
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.kiosk" id="swKiosk">
+          <label class="form-check-label fw-bold small text-dark" for="swKiosk">Activer le Mode Kiosque</label>
+        </div>
+        
+        <!-- Apparaît uniquement si le kiosque est coché -->
+        <div *ngIf="nvProf.kiosk" class="mb-3 ps-4 border-start border-primary border-3">
+          <label class="form-label small fw-bold text-primary">ID de l'application unique</label>
+          <input type="text" [(ngModel)]="nvProf.appKiosk" class="form-control form-control-sm" placeholder="Ex: com.isy.app">
+        </div>
+
+        <hr>
+
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noCam" id="swCam">
+          <label class="form-check-label fw-bold small text-dark" for="swCam">Bloquer l'Appareil Photo</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noUsb" id="swUsb">
+          <label class="form-check-label fw-bold small text-dark" for="swUsb">Bloquer le Transfert de fichiers USB</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noBt" id="swBt">
+          <label class="form-check-label fw-bold small text-dark" for="swBt">Bloquer le Bluetooth</label>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.pinFort" id="swPin">
+          <label class="form-check-label fw-bold small text-dark" for="swPin">Forcer un Code PIN Fort</label>
+        </div>
+      </div>
+      
+      <div class="d-flex justify-content-end gap-2">
+        <button (click)="fermMod()" class="btn btn-light fw-bold px-4">Annuler</button>
+        <button (click)="savProf()" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: #0077ff;">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+</div>

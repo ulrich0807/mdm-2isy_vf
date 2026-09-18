@@ -1,0 +1,24 @@
+<!-- Vue PLEIN ÉCRAN pour la page de connexion -->
+<ng-container *ngIf="isLoginPage">
+  <router-outlet></router-outlet>
+</ng-container>
+
+<!-- Vue APPLICATION (Dashboard, Terminaux) avec le menu latéral -->
+<ng-container *ngIf="!isLoginPage">
+  <div class="d-flex p-2 p-md-4 animate-fade-up" style="height: 100vh; background-color: #eaf0f7;">
+    <div class="d-flex w-100 rounded-5 overflow-hidden" style="box-shadow: 0 15px 40px rgba(0,0,0,0.08); background-color: #f7f9fc;">
+      
+      <!-- Sidebar -->
+      <app-sidebar></app-sidebar>
+
+      <!-- Contenu Principal -->
+      <div class="flex-grow-1 d-flex flex-column">
+        <app-header></app-header>
+        <div class="p-4 overflow-auto flex-grow-1">
+           <router-outlet></router-outlet>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ng-container>

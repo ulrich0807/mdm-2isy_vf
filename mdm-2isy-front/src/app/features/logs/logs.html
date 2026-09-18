@@ -1,0 +1,73 @@
+<div class="container-fluid p-0 position-relative">
+  
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold m-0 text-dark">Journal d'Audit</h3>
+      <p class="text-muted small m-0">Traçabilité complète des actions et alertes système</p>
+    </div>
+    <button (click)="getLogs()" class="btn btn-light border fw-bold rounded-pill shadow-sm text-dark px-4">
+      🔄 Rafraîchir
+    </button>
+  </div>
+
+  <!-- Barre de filtres -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white border">
+        <span class="input-group-text bg-white border-0 text-muted ps-3">🔍</span>
+        <input type="text" [(ngModel)]="srch" (ngModelChange)="filtrer()" class="form-control border-0 shadow-none" placeholder="Rechercher une action, une cible ou un utilisateur...">
+      </div>
+    </div>
+    <div class="col-md-4">
+      <select [(ngModel)]="fTyp" (ngModelChange)="filtrer()" class="form-select shadow-sm rounded-pill border text-muted">
+        <option value="">Toutes les gravités</option>
+        <option value="primary">🔵 Actions Administratives</option>
+        <option value="warning">🟡 Alertes Système (Batterie, GPS)</option>
+        <option value="danger">🔴 Actions Critiques (Wipe, Verrouillage)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tableau des Logs -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 bg-white">
+        <thead class="bg-light text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">
+          <tr>
+            <th class="py-3 px-4">Date & Heure</th>
+            <th class="py-3">Auteur</th>
+            <th class="py-3">Type d'Action</th>
+            <th class="py-3">Cible / Équipement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Message de chargement -->
+          <tr *ngIf="load">
+            <td colspan="4" class="text-center py-5 text-muted">Chargement de l'historique...</td>
+          </tr>
+
+          <!-- Message si aucun résultat -->
+          <tr *ngIf="!load && fLogs.length === 0">
+            <td colspan="4" class="text-center py-5 text-muted">Aucun événement ne correspond à votre recherche.</td>
+          </tr>
+
+          <!-- Boucle sur les logs filtrés -->
+          <tr *ngFor="let l of fLogs" class="border-bottom">
+            <td class="py-3 px-4 small fw-bold text-muted">{{ l.date }}</td>
+            <td class="py-3">
+              <span class="badge bg-light text-dark border px-2 py-1">
+                👤 {{ l.usr }}
+              </span>
+            </td>
+            <td class="py-3 fw-bold" [ngClass]="'text-' + l.typ">
+              {{ l.act }}
+            </td>
+            <td class="py-3 text-dark small">{{ l.cible }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

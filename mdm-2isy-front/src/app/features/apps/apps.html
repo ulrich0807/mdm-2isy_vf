@@ -1,0 +1,91 @@
+<div class="container-fluid p-0 position-relative">
+  
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold m-0 text-dark">Gestion des Applications</h3>
+      <p class="text-muted small m-0">Déploiement, Liste Blanche et Blocages (MDM)</p>
+    </div>
+    <button (click)="ouvrirModal()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
+      + Ajouter une Application
+    </button>
+  </div>
+
+  <!-- Tableau des applications -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 bg-white">
+        <thead class="bg-light text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">
+          <tr>
+            <th class="py-3 px-4">Nom de l'Application</th>
+            <th class="py-3">Package (ID)</th>
+            <th class="py-3">Politique</th>
+            <th class="py-3">Version</th>
+            <th class="py-3 text-end px-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="load">
+            <td colspan="5" class="text-center py-5 text-muted">Chargement...</td>
+          </tr>
+          
+          <tr *ngFor="let a of apps" class="border-bottom">
+            <td class="py-3 px-4 fw-bold text-dark">
+              <span class="fs-5 me-2 text-primary">📦</span> {{ a.nom }}
+            </td>
+            <td class="py-3 text-muted small">{{ a.pkg }}</td>
+            <td class="py-3">
+              <span class="badge rounded-pill px-3 py-2 shadow-sm"
+                    [ngClass]="a.type === 'blanche' ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'">
+                {{ a.type === 'blanche' ? '🟢 Liste Blanche' : '🔴 Bloquée (Liste Noire)' }}
+              </span>
+            </td>
+            <td class="py-3 text-muted fw-bold">{{ a.ver }}</td>
+            <td class="py-3 px-4 text-end">
+              <button *ngIf="a.type === 'blanche'" class="btn btn-sm btn-primary border-0 me-2 shadow-sm" title="Pousser vers les terminaux">Pousser (Install)</button>
+              <button (click)="delApp(a.id)" class="btn btn-sm btn-light border text-danger" title="Supprimer">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODALE D'AJOUT -->
+  <div *ngIf="showModal" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+    <div class="card border-0 shadow-lg rounded-4 p-4 bg-white" style="width: 100%; max-width: 500px; animation: fadeIn 0.2s ease-in-out;">
+      <h5 class="fw-bold mb-4 text-dark">Nouvelle Règle Applicative</h5>
+      
+      <div class="mb-3">
+        <label class="form-label small fw-bold text-muted">Nom usuel</label>
+        <input type="text" [(ngModel)]="nvApp.nom" class="form-control" placeholder="Ex: Application 2ISY">
+      </div>
+      
+      <div class="mb-3">
+        <label class="form-label small fw-bold text-muted">Nom du Package (ID Android)</label>
+        <input type="text" [(ngModel)]="nvApp.pkg" class="form-control" placeholder="Ex: com.isy.app">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-bold text-muted">Type de politique</label>
+        <select [(ngModel)]="nvApp.type" class="form-select">
+          <option value="blanche">🟢 Liste Blanche (Autorisée / À installer)</option>
+          <option value="noire">🔴 Liste Noire (Bloquée / À désinstaller)</option>
+        </select>
+      </div>
+      
+      <!-- Fichier APK uniquement si liste blanche -->
+      <div class="mb-4" *ngIf="nvApp.type === 'blanche'">
+        <label class="form-label small fw-bold text-muted">Fichier d'installation (.apk) - Optionnel</label>
+        <input type="file" (change)="onFileSel($event)" class="form-control" accept=".apk">
+        <small class="text-muted" style="font-size: 0.7rem;">Si fourni, l'application sera installée à distance.</small>
+      </div>
+      
+      <div class="d-flex justify-content-end gap-2 mt-2">
+        <button (click)="fermerModal()" class="btn btn-light fw-bold px-4">Annuler</button>
+        <button (click)="sauverApp()" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: #0077ff;">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+</div>

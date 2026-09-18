@@ -1,0 +1,69 @@
+<div class="container-fluid p-0">
+  
+  <div class="mb-4">
+    <h3 class="fw-bold m-0 text-dark">Paramètres du Compte</h3>
+    <p class="text-muted small m-0">Gérez vos informations personnelles et votre sécurité</p>
+  </div>
+
+  <div class="row g-4">
+    
+    <!-- CARTE : Informations Personnelles -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+        <div class="d-flex align-items-center mb-4">
+          <span class="fs-4 me-3">👤</span>
+          <h5 class="fw-bold m-0">Profil</h5>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Nom complet</label>
+          <input type="text" [(ngModel)]="prof.name" class="form-control" placeholder="Votre nom">
+        </div>
+        
+        <div class="mb-4">
+          <label class="form-label small fw-bold text-muted">Adresse Email</label>
+          <input type="email" [(ngModel)]="prof.email" class="form-control" placeholder="votre@email.com">
+        </div>
+        
+        <div class="mt-auto text-end">
+          <button (click)="saveProf()" class="btn text-white fw-bold px-4 rounded-pill shadow-sm" style="background-color: #0077ff;">
+            Enregistrer les infos
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARTE : Sécurité / Mot de passe -->
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+        <div class="d-flex align-items-center mb-4">
+          <span class="fs-4 me-3">🔒</span>
+          <h5 class="fw-bold m-0">Sécurité</h5>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Ancien mot de passe</label>
+          <input type="password" [(ngModel)]="pwd.old_pwd" class="form-control" placeholder="Saisissez votre ancien mot de passe">
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Nouveau mot de passe</label>
+          <input type="password" [(ngModel)]="pwd.new_pwd" class="form-control" minlength="12" placeholder="Minimum 12 caractères">
+          <small class="text-muted">Avec majuscule, minuscule et chiffre.</small>
+        </div>
+        
+        <div class="mb-4">
+          <label class="form-label small fw-bold text-muted">Confirmez le nouveau mot de passe</label>
+          <input type="password" [(ngModel)]="pwd.new_pwd_confirmation" class="form-control" placeholder="Retapez le nouveau mot de passe">
+        </div>
+        
+        <div class="mt-auto text-end">
+          <button (click)="savePwd()" class="btn btn-dark fw-bold px-4 rounded-pill shadow-sm" [disabled]="!pwd.old_pwd || !pwd.new_pwd || !pwd.new_pwd_confirmation">
+            Mettre à jour le mot de passe
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

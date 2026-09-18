@@ -20,12 +20,11 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             buildConfigField(
                 "String",
                 "DEFAULT_API_URL",
-                "\"http://10.0.2.2:8000/api/v1/device\"",
+                "\"http://192.168.1.68:8000/api/v1/device\"",
             )
         }
         release {

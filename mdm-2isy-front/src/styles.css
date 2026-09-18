@@ -1,0 +1,216 @@
+
+/* src/styles.css */
+body {
+  background-color: #eaf0f7; /* Le fond bleu-gris très clair de l'image */
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Style des cartes premium (bords très arrondis, ombre douce, pas de bordure) */
+.premium-card {
+  background-color: #ffffff;
+  border-radius: 1.5rem !important; /* Bords très arrondis */
+  border: none !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03) !important;
+}
+
+/* Couleurs d'accentuation inspirées de la maquette */
+.text-accent-red { color: #e74a3b !important; }
+.bg-accent-red { background-color: #e74a3b !important; }
+.text-accent-orange { color: #f6c23e !important; }
+
+/* Customisation du menu actif */
+.nav-link.active-menu {
+  color: #e74a3b !important;
+  font-weight: bold;
+}
+.nav-link.active-menu .icon {
+  color: #e74a3b !important;
+}
+
+/* Custom Scrollbar pour un effet App native */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+.nav-link.active-menu {
+  color: #e74a3b !important;
+  font-weight: 700;
+  background-color: rgba(231, 74, 59, 0.08) !important; /* Fond rouge très léger */
+}
+
+/* =========================================
+   ANIMATIONS D'APPARITION (FADE UP)
+   ========================================= */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0; /* Caché par défaut avant l'animation */
+}
+
+/* Retards d'animation pour créer un effet "cascade" visuellement très pro */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+/* =========================================
+   EFFETS DE SURVOL (HOVER) SUR LES CARTES
+   ========================================= */
+.premium-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.premium-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.08) !important;
+}
+
+/* =========================================
+   DÉGRADÉS MODERNES & ANIMATION PULSE
+   ========================================= */
+.bg-gradient-red {
+  background: linear-gradient(135deg, #ff6b6b 0%, #e74a3b 100%) !important;
+  color: white !important;
+}
+
+@keyframes pulse-soft {
+  0% { box-shadow: 0 0 0 0 rgba(231, 74, 59, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(231, 74, 59, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(231, 74, 59, 0); }
+}
+
+.pulse-alert {
+  animation: pulse-soft 2s infinite;
+  border-radius: 50%;
+}
+
+/* =========================================
+   DÉGRADÉS PREMIUM POUR LES CARTES
+   ========================================= */
+.bg-gradient-blue { 
+  background: linear-gradient(135deg, #4e73df 0%, #224abe 100%) !important; 
+  color: white !important; 
+}
+
+.bg-gradient-green { 
+  background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%) !important; 
+  color: white !important; 
+}
+
+.bg-gradient-warning { 
+  background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%) !important; 
+  color: white !important; 
+}
+
+.bg-gradient-purple { 
+  background: linear-gradient(135deg, #b76bf3 0%, #8328c7 100%) !important; 
+  color: white !important; 
+}
+
+/* =========================================
+   STYLE DES CARTES "FLAT DESIGN" (Inspiré de la maquette)
+   ========================================= */
+.bg-flat-blue { background-color: #495aff !important; color: white !important; }
+.bg-flat-pink { background-color: #ff3366 !important; color: white !important; }
+.bg-flat-orange { background-color: #ff7733 !important; color: white !important; }
+.bg-flat-green { background-color: #4dd253 !important; color: white !important; }
+
+/* Couleurs des icônes pour correspondre au fond de leur carte */
+.text-flat-blue { color: #495aff !important; }
+.text-flat-pink { color: #ff3366 !important; }
+.text-flat-orange { color: #ff7733 !important; }
+.text-flat-green { color: #4dd253 !important; }
+
+/* Le cercle blanc pour l'icône */
+.icon-circle-white {
+  width: 65px;
+  height: 65px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Couleurs de texte pour les icônes SVG (assorties aux dégradés) */
+.text-grad-blue { color: #4e73df !important; }
+.text-grad-green { color: #1cc88a !important; }
+.text-grad-warning { color: #f6c23e !important; }
+.text-grad-red { color: #e74a3b !important; }
+
+/* =========================================
+   STYLE DU MENU LATÉRAL (SUR FOND BLEU)
+   ========================================= */
+.sidebar-menu .nav-link {
+  color: rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.3s ease;
+}
+
+.sidebar-menu .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff !important;
+}
+
+.sidebar-menu .nav-link.active-menu {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  border-left: 4px solid #ffffff;
+}
+
+.logout-link {
+  color: rgba(255, 255, 255, 0.6) !important;
+  transition: color 0.3s;
+}
+
+.logout-link:hover {
+  color: #ffffff !important;
+}
+/* Cache la barre de défilement pour un design plus propre */
+.sidebar-menu::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-menu {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Style propre pour l'élément actif du menu */
+.sidebar-menu .nav-link.active-menu {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  font-weight: bold;
+}
+
+}
+
+/* ==== ANIMATIONS POUR LA CARTE ==== */
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(25, 135, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+}
+.pulse-animation {
+  animation: glow-pulse 2s infinite;
+}
+.marker-pin {
+  transition: transform 0.3s ease;
+}
+.marker-pin:hover {
+  transform: scale(1.15);
+  z-index: 1000;
+}

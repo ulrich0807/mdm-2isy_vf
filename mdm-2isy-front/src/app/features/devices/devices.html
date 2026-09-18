@@ -1,0 +1,480 @@
+<div class="container-fluid p-0 position-relative">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold m-0 text-dark">Flotte de Terminaux</h3>
+      <p class="text-muted small m-0">Enrôlement et gestion centralisée des appareils assignés</p>
+    </div>
+    <button (click)="ouvrirModal()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
+      + Enrôler un terminal
+    </button>
+  </div>
+
+  <div *ngIf="contextError" class="alert alert-danger py-2 small">{{ contextError }}</div>
+
+  <div *ngIf="isSuperAdmin" class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-4">
+        <label class="form-label small fw-bold text-muted mb-1">Organisation supervisée</label>
+        <select
+          [(ngModel)]="selectedOrganizationId"
+          (ngModelChange)="changerOrganisation($event)"
+          class="form-select"
+          [disabled]="chargementOrganisations"
+        >
+          <option [ngValue]="null">Sélectionnez une organisation</option>
+          <option *ngFor="let organization of organizations" [ngValue]="organization.id">
+            {{ organization.name }}
+          </option>
+        </select>
+      </div>
+      <div class="col-lg-8 text-muted small">
+        Les terminaux, groupes et invitations affichés sont limités à l’organisation sélectionnée.
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+      <div class="flex-grow-1">
+        <div class="small fw-bold text-muted mb-2">Groupes de terminaux</div>
+        <div *ngIf="chargementGroupes" class="small text-muted">Chargement des groupes...</div>
+        <div *ngIf="!chargementGroupes" class="d-flex flex-wrap gap-2">
+          <span *ngFor="let group of groupes" class="badge bg-light text-dark border d-inline-flex align-items-center gap-2 px-3 py-2">
+            {{ group.name }}
+            <button
+              type="button"
+              (click)="supprimerGroupe(group)"
+              class="btn-close"
+              style="font-size: 0.55rem;"
+              [attr.aria-label]="'Supprimer le groupe ' + group.name"
+            ></button>
+          </span>
+          <span *ngIf="groupes.length === 0" class="small text-muted">Aucun groupe.</span>
+        </div>
+        <div *ngIf="groupError" class="text-danger small mt-2">{{ groupError }}</div>
+      </div>
+
+      <div style="min-width: min(100%, 320px);">
+        <label class="form-label small fw-bold text-muted mb-1">Créer un groupe</label>
+        <div class="input-group">
+          <input
+            type="text"
+            [(ngModel)]="nouveauGroupe"
+            (keyup.enter)="creerGroupe()"
+            class="form-control"
+            placeholder="Ex: Zone Nord"
+            maxlength="100"
+          >
+          <button
+            type="button"
+            (click)="creerGroupe()"
+            class="btn btn-primary fw-bold"
+            [disabled]="creationGroupe || (isSuperAdmin && selectedOrganizationId === null)"
+          >
+            {{ creationGroupe ? 'Création...' : 'Ajouter' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-4">
+    <div class="col-md-3">
+      <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
+        <span class="input-group-text bg-white border-0 text-muted ps-3">🔍</span>
+        <input type="text" [(ngModel)]="srch" (ngModelChange)="filtrer()" class="form-control border-0 shadow-none" placeholder="Recherche...">
+      </div>
+    </div>
+
+    <div class="col-md-2">
+      <select [(ngModel)]="fGrp" (ngModelChange)="filtrer()" class="form-select shadow-sm rounded-pill border-0 text-muted">
+        <option [ngValue]="null">Tous les groupes</option>
+        <option *ngFor="let group of groupes" [ngValue]="group.id">{{ group.name }}</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <select [(ngModel)]="fMod" (ngModelChange)="filtrer()" class="form-select shadow-sm rounded-pill border-0 text-muted">
+        <option value="">Tous modèles</option>
+        <option *ngFor="let model of lstMod" [value]="model">{{ model }}</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <select [(ngModel)]="fBat" (ngModelChange)="filtrer()" class="form-select shadow-sm rounded-pill border-0 text-muted">
+        <option value="">Batterie</option>
+        <option value="ok">🔋 &gt; 20%</option>
+        <option value="low">🪫 ≤ 20%</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <select [(ngModel)]="fStat" (ngModelChange)="filtrer()" class="form-select shadow-sm rounded-pill border-0 text-muted">
+        <option value="">Tous les statuts</option>
+        <option value="En ligne">🟢 En ligne</option>
+        <option value="Hors ligne">🟡 Hors ligne</option>
+        <option value="Verrouillé">🔴 Verrouillé</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="bg-light border-bottom px-4 py-2 small text-muted">
+      Les commandes sont mises en file. Un terminal hors ligne les recevra à sa prochaine connexion.
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 bg-white">
+        <thead class="bg-light text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">
+          <tr>
+            <th class="py-3 px-4">Identification</th>
+            <th class="py-3">Assignation</th>
+            <th class="py-3">Matériel & OS</th>
+            <th class="py-3">État</th>
+            <th class="py-3">Connexion & gestion</th>
+            <th class="py-3 text-end px-4">Actions MDM</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="chargement">
+            <td colspan="6" class="text-center py-5 text-muted">Chargement...</td>
+          </tr>
+          <tr *ngIf="!chargement && fTerms.length === 0">
+            <td colspan="6" class="text-center py-5 text-muted">Aucun terminal.</td>
+          </tr>
+
+          <ng-container *ngFor="let term of fTerms">
+            <tr class="border-bottom">
+              <td class="py-3 px-4">
+                <div class="fw-bold text-dark">{{ terminalImei(term) }}</div>
+                <div class="small text-muted">SN : {{ terminalSerial(term) }}</div>
+                <div *ngIf="term.public_id" class="small text-muted font-monospace text-break">{{ term.public_id }}</div>
+              </td>
+              <td class="py-3">
+                <div class="fw-bold text-dark">{{ terminalLabel(term) }}</div>
+                <span class="badge bg-light text-dark border mt-1 mb-1">📁 {{ terminalGroupName(term) }}</span>
+                <select
+                  class="form-select form-select-sm mt-1"
+                  style="min-width: 145px;"
+                  [ngModel]="term.device_group_id ?? null"
+                  (ngModelChange)="affecterGroupe(term, $event)"
+                  [attr.aria-label]="'Groupe du terminal ' + terminalImei(term)"
+                >
+                  <option [ngValue]="null">Non classé</option>
+                  <option *ngFor="let group of groupes" [ngValue]="group.id">{{ group.name }}</option>
+                </select>
+              </td>
+              <td class="py-3">
+                <div *ngIf="terminalManufacturer(term) !== '—'" class="small text-muted">{{ terminalManufacturer(term) }}</div>
+                <div class="text-dark fw-bold small">{{ terminalModel(term) }}</div>
+                <div class="small text-muted">Android : {{ terminalAndroidVersion(term) }}</div>
+                <div *ngIf="term.agent_version" class="small text-muted">Agent : {{ term.agent_version }}</div>
+              </td>
+              <td class="py-3">
+                <span
+                  *ngIf="terminalBattery(term) !== null; else noBattery"
+                  class="badge me-1"
+                  [ngClass]="terminalBattery(term)! > 20 ? 'bg-success' : 'bg-danger'"
+                >🔋 {{ terminalBattery(term) }}%</span>
+                <ng-template #noBattery><span class="badge bg-secondary me-1">🔋 —</span></ng-template>
+
+                <span
+                  *ngIf="terminalStorage(term) !== null; else noStorage"
+                  class="badge"
+                  [ngClass]="terminalStorage(term)! > 90 ? 'bg-danger' : 'bg-secondary'"
+                >💾 {{ terminalStorage(term) }}% utilisé</span>
+                <ng-template #noStorage><span class="badge bg-secondary">💾 —</span></ng-template>
+              </td>
+              <td class="py-3">
+                <span
+                  class="fw-bold small"
+                  [ngClass]="terminalStatus(term) === 'En ligne' ? 'text-success' : (terminalStatus(term) === 'Hors ligne' ? 'text-warning' : 'text-muted')"
+                >● {{ terminalStatus(term) }}</span>
+                <div class="mt-1">
+                  <span class="badge" [ngClass]="terminalManagementStateClass(term)">
+                    Gestion : {{ terminalManagementState(term) }}
+                  </span>
+                </div>
+                <div class="small text-muted mt-1">Dernière connexion : {{ term.last_seen_at ? (term.last_seen_at | date:'dd/MM/yyyy HH:mm') : '—' }}</div>
+              </td>
+              <td class="py-3 px-4 text-end">
+                <div class="d-inline-flex text-nowrap">
+                  <button
+                    type="button"
+                    (click)="envoyerCommande(term, 'locate')"
+                    class="btn btn-sm btn-light border me-1"
+                    [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
+                    [title]="commandActionTitle(term)"
+                    [attr.aria-label]="'Localiser le terminal ' + terminalImei(term)"
+                  >📍</button>
+                  <button
+                    type="button"
+                    (click)="envoyerCommande(term, 'lock')"
+                    class="btn btn-sm btn-light border me-1"
+                    [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
+                    [title]="commandActionTitle(term)"
+                    [attr.aria-label]="'Verrouiller le terminal ' + terminalImei(term)"
+                  >🔒</button>
+                  <button
+                    type="button"
+                    (click)="ouvrirModalWipe(term)"
+                    class="btn btn-sm btn-light border text-danger me-1"
+                    [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
+                    [title]="commandActionTitle(term)"
+                    [attr.aria-label]="'Effacer le terminal ' + terminalImei(term)"
+                  >🗑️</button>
+                  <button
+                    type="button"
+                    (click)="toggleCommandHistory(term)"
+                    class="btn btn-sm btn-light border"
+                    [disabled]="!term.public_id"
+                    [attr.aria-expanded]="isCommandHistoryExpanded(term)"
+                    [attr.aria-label]="'Historique des commandes du terminal ' + terminalImei(term)"
+                    title="Historique des commandes"
+                  >🕘</button>
+                </div>
+                <div *ngIf="isCommandSubmitting(term)" class="small text-muted mt-2">Mise en file...</div>
+                <div
+                  *ngIf="commandFeedbackFor(term) as feedback"
+                  class="small mt-2 text-wrap"
+                  [ngClass]="feedback.kind === 'success' ? 'text-success' : (feedback.kind === 'info' ? 'text-muted' : 'text-danger')"
+                  style="max-width: 240px; margin-left: auto;"
+                >{{ feedback.message }}</div>
+              </td>
+            </tr>
+
+            <tr *ngIf="isCommandHistoryExpanded(term)" class="border-bottom">
+              <td colspan="6" class="bg-light px-4 py-3">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                  <div>
+                    <div class="fw-bold text-dark">Commandes récentes</div>
+                    <small class="text-muted">Les dix dernières commandes connues pour ce terminal.</small>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="chargerCommandHistory(term)"
+                    class="btn btn-sm btn-light border"
+                    [disabled]="isCommandHistoryLoading(term)"
+                  >{{ isCommandHistoryLoading(term) ? 'Actualisation...' : 'Rafraîchir' }}</button>
+                </div>
+
+                <div *ngIf="commandHistoryError(term)" class="alert alert-danger py-2 small mb-2">
+                  {{ commandHistoryError(term) }}
+                </div>
+                <div *ngIf="isCommandHistoryLoading(term)" class="small text-muted py-2">
+                  Chargement de l'historique...
+                </div>
+                <div
+                  *ngIf="!isCommandHistoryLoading(term) && !commandHistoryError(term) && commandHistory(term).length === 0"
+                  class="small text-muted py-2"
+                >Aucune commande enregistrée.</div>
+
+                <div *ngIf="!isCommandHistoryLoading(term) && commandHistory(term).length > 0" class="list-group">
+                  <div *ngFor="let command of commandHistory(term)" class="list-group-item border rounded-3 mb-2">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                      <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="fw-bold">{{ commandTypeLabel(command.type) }}</span>
+                        <span class="badge" [ngClass]="commandStatusClass(command.status)">
+                          {{ commandStatusLabel(command.status) }}
+                        </span>
+                      </div>
+                      <span class="small text-muted">
+                        {{ commandDisplayDate(command) ? (commandDisplayDate(command) | date:'dd/MM/yyyy HH:mm:ss') : 'Date inconnue' }}
+                      </span>
+                    </div>
+                    <div class="small text-muted font-monospace text-break mt-1">{{ command.public_id }}</div>
+                    <div *ngIf="commandDetail(command)" class="small text-break mt-2">
+                      <strong>Détail :</strong> {{ commandDetail(command) }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+    <div class="card-header bg-white border-0 px-4 pt-4 pb-2 d-flex justify-content-between align-items-center">
+      <div>
+        <h5 class="fw-bold text-dark m-0">Invitations d'enrôlement récentes</h5>
+        <small class="text-muted">Les jetons secrets ne sont jamais réaffichés dans cette liste.</small>
+      </div>
+      <button type="button" (click)="chargerEnrollments()" class="btn btn-sm btn-light border">Rafraîchir</button>
+    </div>
+    <div *ngIf="enrollmentListError" class="alert alert-danger mx-4 mt-3 mb-0 py-2 small">{{ enrollmentListError }}</div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead class="text-muted small text-uppercase">
+          <tr>
+            <th class="px-4 py-3">Libellé</th>
+            <th class="py-3">Groupe</th>
+            <th class="py-3">Expiration</th>
+            <th class="py-3">État</th>
+            <th class="px-4 py-3 text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="chargementEnrollments"><td colspan="5" class="text-center py-4 text-muted">Chargement...</td></tr>
+          <tr *ngIf="!chargementEnrollments && enrollments.length === 0"><td colspan="5" class="text-center py-4 text-muted">Aucune invitation.</td></tr>
+          <tr *ngFor="let enrollment of enrollments">
+            <td class="px-4 fw-bold">{{ enrollmentLabel(enrollment) }}</td>
+            <td>{{ enrollmentGroupName(enrollment) }}</td>
+            <td class="text-muted small">{{ enrollment.expires_at | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>
+              <span class="badge" [ngClass]="enrollmentStatusClass(enrollment)">
+                {{ enrollmentStatus(enrollment) }}
+              </span>
+            </td>
+            <td class="px-4 text-end">
+              <button *ngIf="canRevokeEnrollment(enrollment)" type="button" (click)="supprimerEnrollment(enrollment)" class="btn btn-sm btn-light border text-danger">Révoquer</button>
+              <span *ngIf="!canRevokeEnrollment(enrollment)" class="text-muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="afficherModal" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+    <div class="card border-0 shadow-lg rounded-4 p-4 bg-white" style="width: 100%; max-width: 560px;">
+      <ng-container *ngIf="!generatedEnrollment; else generatedToken">
+        <h5 class="fw-bold mb-2 text-dark">Créer une invitation d'enrôlement</h5>
+        <p class="text-muted small mb-4">L'IMEI, le modèle et les informations techniques seront remontés par l'agent Android lors de sa première connexion.</p>
+
+        <div *ngIf="enrollmentError" class="alert alert-danger py-2 small">{{ enrollmentError }}</div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Libellé</label>
+          <input type="text" [(ngModel)]="enrollmentForm.label" class="form-control" placeholder="Ex: Téléphone livreur 24" maxlength="150">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-muted">Groupe initial</label>
+          <select [(ngModel)]="enrollmentForm.device_group_id" class="form-select">
+            <option [ngValue]="null">Sans groupe</option>
+            <option *ngFor="let group of groupes" [ngValue]="group.id">{{ group.name }}</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-bold text-muted">Durée de validité</label>
+          <select [(ngModel)]="enrollmentForm.expires_in_minutes" class="form-select">
+            <option [ngValue]="15">15 minutes</option>
+            <option [ngValue]="30">30 minutes</option>
+            <option [ngValue]="60">1 heure</option>
+            <option [ngValue]="240">4 heures</option>
+            <option [ngValue]="1440">24 heures</option>
+          </select>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" (click)="fermerModal()" class="btn btn-light fw-bold px-4">Annuler</button>
+          <button
+            type="button"
+            (click)="genererEnrollment()"
+            class="btn text-white fw-bold px-4"
+            style="background-color: #0077ff;"
+            [disabled]="generationEnCours || !enrollmentForm.label.trim()"
+          >{{ generationEnCours ? 'Génération...' : 'Générer le jeton' }}</button>
+        </div>
+      </ng-container>
+
+      <ng-template #generatedToken>
+        <h5 class="fw-bold mb-3 text-dark">Jeton d'enrôlement généré</h5>
+        <div class="alert alert-warning small">
+          <strong>À copier maintenant.</strong> Ce secret est affiché une seule fois et ne pourra pas être récupéré après la fermeture de cette fenêtre.
+        </div>
+
+        <label class="form-label small fw-bold text-muted">Adresse de l'API</label>
+        <div class="bg-light border rounded-3 p-3 mb-3 font-monospace small text-break">{{ generatedEnrollment?.enrollment_payload?.api_url }}</div>
+
+        <label class="form-label small fw-bold text-muted">Jeton secret</label>
+        <div class="bg-dark text-white rounded-3 p-3 mb-2 font-monospace small text-break user-select-all">{{ generatedEnrollment?.enrollment_token }}</div>
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+          <small class="text-muted">Expire le {{ generatedEnrollment?.expires_at | date:'dd/MM/yyyy à HH:mm' }}</small>
+          <button type="button" (click)="copierJeton()" class="btn btn-primary btn-sm fw-bold">Copier le jeton</button>
+        </div>
+        <div *ngIf="copyStatus" class="small" [ngClass]="copyStatus === 'Jeton copié.' ? 'text-success' : 'text-danger'">{{ copyStatus }}</div>
+
+        <div class="text-end mt-4">
+          <button type="button" (click)="fermerModal()" class="btn btn-dark fw-bold px-4">J'ai copié le jeton</button>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div
+    *ngIf="afficherModalWipe"
+    class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3"
+    style="background-color: rgba(0,0,0,0.6); z-index: 1060;"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="wipe-modal-title"
+  >
+    <form
+      (ngSubmit)="confirmerWipe()"
+      class="card border-danger shadow-lg rounded-4 p-4 bg-white"
+      style="width: 100%; max-width: 580px;"
+    >
+      <h5 id="wipe-modal-title" class="fw-bold text-danger mb-2">Effacer définitivement le terminal</h5>
+      <p class="text-muted small mb-3">
+        Cette commande supprime les données gérées du terminal. Elle sera mise en file même si le terminal est hors ligne.
+      </p>
+
+      <div class="alert alert-danger small">
+        Pour confirmer, recopiez exactement l'identifiant public
+        <strong class="font-monospace text-break">{{ wipeTerminal?.public_id }}</strong>,
+        puis saisissez votre mot de passe courant.
+      </div>
+
+      <div *ngIf="wipeError" class="alert alert-danger py-2 small">{{ wipeError }}</div>
+
+      <div class="mb-3">
+        <label for="wipe-confirmation" class="form-label small fw-bold text-muted">
+          Identifiant public du terminal
+        </label>
+        <input
+          id="wipe-confirmation"
+          name="wipeConfirmation"
+          type="text"
+          [(ngModel)]="wipeConfirmation"
+          class="form-control font-monospace"
+          autocomplete="off"
+          spellcheck="false"
+          [disabled]="wipeSubmitting"
+          required
+        >
+      </div>
+
+      <div class="mb-4">
+        <label for="wipe-password" class="form-label small fw-bold text-muted">Mot de passe courant</label>
+        <input
+          id="wipe-password"
+          name="wipePassword"
+          type="password"
+          [(ngModel)]="wipePassword"
+          class="form-control"
+          autocomplete="current-password"
+          [disabled]="wipeSubmitting"
+          required
+        >
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button
+          type="button"
+          (click)="fermerModalWipe()"
+          class="btn btn-light fw-bold px-4"
+          [disabled]="wipeSubmitting"
+        >Annuler</button>
+        <button
+          type="submit"
+          class="btn btn-danger fw-bold px-4"
+          [disabled]="!canConfirmWipe()"
+        >{{ wipeSubmitting ? 'Mise en file...' : 'Effacer le terminal' }}</button>
+      </div>
+    </form>
+  </div>
+</div>

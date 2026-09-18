@@ -1,0 +1,126 @@
+<div class="container-fluid p-0 position-relative">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold m-0 text-dark">Gestion des Licences</h3>
+      <p class="text-muted small m-0">Suivi de la facturation et des accès MDM</p>
+    </div>
+    <!-- CENSURÉ POUR LE CLIENT : *ngIf="isSuperAdmin" -->
+    <button *ngIf="isSuperAdmin" (click)="genererLic()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
+      + Générer une Clé
+    </button>
+  </div>
+<!-- SECTION STATISTIQUES -->
+  <div class="row g-3 mb-4">
+    <!-- Total Licences -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 d-flex flex-row align-items-center bg-white h-100">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3 text-primary fs-4">🔑</div>
+        <div>
+          <h4 class="fw-bold m-0">{{ stats.total }}</h4>
+          <small class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">TOTAL</small>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Licences Actives -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 d-flex flex-row align-items-center bg-white h-100">
+        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3 text-success fs-4">✅</div>
+        <div>
+          <h4 class="fw-bold m-0">{{ stats.actives }}</h4>
+          <small class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">ACTIVES</small>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Licences Rattachées -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 d-flex flex-row align-items-center bg-white h-100">
+        <div class="rounded-circle bg-dark bg-opacity-10 p-3 me-3 text-dark fs-4">📱</div>
+        <div>
+          <h4 class="fw-bold m-0">{{ stats.rattachees }}</h4>
+          <small class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">RATTACHÉES</small>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Actives MAIS Non Rattachées -->
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 d-flex flex-row align-items-center bg-white h-100">
+        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3 text-warning fs-4">⏳</div>
+        <div>
+          <h4 class="fw-bold m-0">{{ stats.actNonRattachees }}</h4>
+          <small class="text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 0.5px;">EN ATTENTE D'ASSIGNATION</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- FIN STATISTIQUES -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 bg-white">
+        <thead class="bg-light text-muted small fw-bold text-uppercase" style="letter-spacing: 0.5px;">
+          <tr>
+            <th class="py-3 px-4">Clé de Licence</th>
+            <th class="py-3">Terminal Assigné</th>
+            <th class="py-3">Date d'Expiration</th>
+            <th class="py-3">Statut</th>
+            <th class="py-3 text-end px-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="load">
+            <td colspan="5" class="text-center py-5 text-muted">Chargement...</td>
+          </tr>
+
+          <tr *ngFor="let l of lics" class="border-bottom">
+            <td class="py-3 px-4 fw-bold text-dark font-monospace">{{ l.cle }}</td>
+           <!-- Affichage conditionnel du Terminal -->
+            <td class="py-3">
+              <span *ngIf="l.term_id" class="badge bg-secondary">IMEI: {{ getImei(l.term_id) }}</span>
+              <span *ngIf="!l.term_id" class="text-muted small">Non assigné</span>
+            </td>
+            <td class="py-3 text-muted">
+              {{ l.exp_le ? (l.exp_le | date:'dd/MM/yyyy') : '--/--/----' }}
+            </td>
+            <td class="py-3">
+              <span class="fw-bold small" [ngClass]="l.statut === 'Active' ? 'text-success' : (l.statut === 'Expirée' ? 'text-danger' : 'text-warning')">
+                ● {{ l.statut }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-end">
+              <!-- Logique des 3 boutons -->
+              <button *ngIf="l.statut !== 'Active'" (click)="actvLic(l.id)" class="btn btn-sm btn-success fw-bold shadow-sm">Activer</button>
+              
+              <button *ngIf="l.statut === 'Active' && !l.term_id" (click)="ouvrirModalAssign(l.id)" class="btn btn-sm btn-primary fw-bold shadow-sm">Assigner</button>
+              
+              <button *ngIf="l.statut === 'Active' && l.term_id" (click)="detacherLic(l.id)" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #ff9900;">Détacher</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODALE D'ASSIGNATION -->
+  <div *ngIf="showModalAssign" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+    <div class="card border-0 shadow-lg rounded-4 p-4" style="width: 100%; max-width: 400px;">
+      <h5 class="fw-bold mb-4 text-dark">Lier à un terminal</h5>
+      
+      <div class="mb-4">
+        <label class="form-label small fw-bold text-muted">Appareils disponibles</label>
+        <select [(ngModel)]="terminalSelectionne" class="form-select">
+          <option value="">Sélectionnez un appareil...</option>
+          <option *ngFor="let t of terminauxDispo" [value]="t.id">{{ t.modele }} ({{ t.imei }})</option>
+        </select>
+        <div *ngIf="terminauxDispo.length === 0" class="text-danger small mt-2">Aucun terminal sans licence n'est disponible.</div>
+      </div>
+      
+      <div class="d-flex justify-content-end gap-2">
+        <button (click)="fermerModalAssign()" class="btn btn-light fw-bold px-4">Annuler</button>
+        <button (click)="confirmerAssignation()" class="btn text-white fw-bold px-4" style="background-color: #0077ff;" [disabled]="!terminalSelectionne">Lier</button>
+      </div>
+    </div>
+  </div>
+</div>

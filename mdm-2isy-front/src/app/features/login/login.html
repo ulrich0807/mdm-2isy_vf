@@ -1,0 +1,77 @@
+<!-- Arrière-plan global gris très clair -->
+<div class="container-fluid vh-100 d-flex justify-content-center align-items-center animate-fade-up" style="background-color: #f4f7f9;">
+
+  <!-- Conteneur Principal (La grande carte bleue flottante) -->
+  <div class="row shadow-lg position-relative overflow-hidden" 
+       style="max-width: 950px; width: 95%; min-height: 550px; border-radius: 1.5rem; background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%);">
+
+    <!-- Formes décoratives (Bulles d'arrière-plan abstraites) -->
+    <div class="position-absolute rounded-circle" 
+         style="width: 500px; height: 500px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%); top: -150px; left: -150px;"></div>
+    <div class="position-absolute rounded-circle" 
+         style="width: 400px; height: 400px; background: radial-gradient(circle, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 70%); bottom: -100px; left: 30%;"></div>
+
+    <!-- Partie Gauche : Texte d'accueil -->
+    <div class="col-md-6 d-flex flex-column justify-content-center p-5 text-white position-relative" style="z-index: 1;">
+      <h1 class="fw-bold mb-3 text-uppercase" style="letter-spacing: 2px;">Bienvenue</h1>
+      <h5 class="fw-bold mb-4 text-uppercase">Tableau de bord MDM Pro</h5>
+      <p class="small opacity-75" style="line-height: 1.8; font-size: 0.9rem;">
+        Plateforme centralisée pour la gestion, la sécurité et le suivi de vos terminaux de livraison en temps réel. Accédez à vos données et pilotez votre flotte.
+      </p>
+    </div>
+
+    <!-- Partie Droite : Formulaire blanc imbriqué -->
+    <div class="col-md-6 d-flex align-items-center justify-content-center p-3 p-md-4 position-relative" style="z-index: 1;">
+      <div class="bg-white w-100 h-100 rounded-4 shadow-sm p-4 p-md-5 d-flex flex-column justify-content-center">
+        
+        <h2 class="fw-bold mb-2 text-center" style="color: #0044aa;">Connexion</h2>
+        <p class="text-muted small text-center mb-4" style="font-size: 0.8rem;">Veuillez entrer vos identifiants pour continuer</p>
+
+        <!-- Affichage dynamique de l'erreur -->
+        <div *ngIf="erreur" class="alert alert-danger py-2 small text-center mb-3">
+          {{ erreur }}
+        </div>
+
+        <!-- Formulaire avec redirection sur 'submit' -->
+        <form (ngSubmit)="seConnecter($event)">
+          
+          <div class="mb-4">
+            <!-- Ajout de name et ngModel pour la liaison de données -->
+            <input type="email" name="email" [(ngModel)]="email" class="form-control form-control-lg border" placeholder="Nom d'utilisateur (Email)" required 
+                   style="border-radius: 0.5rem; font-size: 0.9rem; padding: 0.8rem 1rem;">
+          </div>
+
+          <div class="mb-4 position-relative">
+            <!-- Ajout de name et ngModel pour la liaison de données -->
+            <input type="password" name="password" [(ngModel)]="motDePasse" class="form-control form-control-lg border pe-5" placeholder="Mot de passe" required 
+                   style="border-radius: 0.5rem; font-size: 0.9rem; padding: 0.8rem 1rem;">
+            <!-- Bouton SHOW positionné en absolu dans l'input -->
+            <span class="position-absolute top-50 end-0 translate-middle-y pe-3 fw-bold" 
+                  style="cursor: pointer; z-index: 10; font-size: 0.75rem; color: #0044aa;">AFFICHER</span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input shadow-none" id="rememberMe">
+              <label class="form-check-label text-dark fw-semibold" for="rememberMe" style="font-size: 0.75rem; cursor: pointer;">Se souvenir de moi</label>
+            </div>
+            <a href="#" class="text-decoration-none fw-semibold" style="font-size: 0.75rem; color: #555;">Mot de passe oublié ?</a>
+          </div>
+
+          <!-- Désactivation du bouton pendant le chargement -->
+          <button type="submit" [disabled]="chargement" class="btn w-100 py-3 rounded-3 fw-bold text-white shadow-sm mb-4" 
+                  style="background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%); font-size: 1.1rem; border: none; transition: transform 0.2s;">
+            {{ chargement ? 'Connexion en cours...' : 'Se connecter' }}
+          </button>
+
+          <div class="text-center mt-auto">
+            <span class="text-muted" style="font-size: 0.8rem;">Pas encore de compte ? </span>
+            <a href="#" class="text-decoration-none fw-bold" style="color: #0044aa; font-size: 0.8rem;">Nous contacter</a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+</div>
