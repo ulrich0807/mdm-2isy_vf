@@ -52,6 +52,9 @@ class FcmService
             $message = [
                 'message' => [
                     'token' => $deviceToken,
+                    'android' => [
+                        'priority' => 'high'
+                    ],
                     'data' => [
                         'type' => $commandType,
                         'payload' => json_encode($payload),
