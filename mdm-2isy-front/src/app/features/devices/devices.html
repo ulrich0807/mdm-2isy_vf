@@ -201,36 +201,36 @@
                   <button
                     type="button"
                     (click)="envoyerCommande(term, 'locate')"
-                    class="btn btn-sm btn-light border me-1"
+                    class="btn btn-sm btn-light border me-1 fw-bold"
                     [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
-                    [title]="commandActionTitle(term)"
+                    [title]="commandActionTitle(term) || 'Demander la position GPS'"
                     [attr.aria-label]="'Localiser le terminal ' + terminalImei(term)"
-                  >📍</button>
+                  >📍 Localiser</button>
                   <button
                     type="button"
                     (click)="envoyerCommande(term, 'lock')"
-                    class="btn btn-sm btn-light border me-1"
+                    class="btn btn-sm btn-light border me-1 fw-bold"
                     [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
-                    [title]="commandActionTitle(term)"
+                    [title]="commandActionTitle(term) || 'Verrouiller l\'écran ou activer Kiosque'"
                     [attr.aria-label]="'Verrouiller le terminal ' + terminalImei(term)"
-                  >🔒</button>
+                  >🔒 Verrouiller</button>
                   <button
                     type="button"
                     (click)="ouvrirModalWipe(term)"
-                    class="btn btn-sm btn-light border text-danger me-1"
+                    class="btn btn-sm btn-light border text-danger me-1 fw-bold"
                     [disabled]="!canSendCommand(term) || isCommandSubmitting(term)"
-                    [title]="commandActionTitle(term)"
+                    [title]="commandActionTitle(term) || 'Remettre le téléphone à zéro'"
                     [attr.aria-label]="'Effacer le terminal ' + terminalImei(term)"
-                  >🗑️</button>
+                  >🗑️ Effacer</button>
                   <button
                     type="button"
                     (click)="toggleCommandHistory(term)"
-                    class="btn btn-sm btn-light border"
+                    class="btn btn-sm btn-light border fw-bold"
                     [disabled]="!term.public_id"
                     [attr.aria-expanded]="isCommandHistoryExpanded(term)"
                     [attr.aria-label]="'Historique des commandes du terminal ' + terminalImei(term)"
-                    title="Historique des commandes"
-                  >🕘</button>
+                    title="Voir l'historique des requêtes MDM"
+                  >🕘 Historique</button>
                 </div>
                 <div *ngIf="isCommandSubmitting(term)" class="small text-muted mt-2">Mise en file...</div>
                 <div
