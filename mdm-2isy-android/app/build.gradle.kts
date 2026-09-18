@@ -15,7 +15,7 @@ android {
         versionName = "0.1.0"
 
         testInstrumentationRunner = "android.test.InstrumentationTestRunner"
-        buildConfigField("String", "DEFAULT_API_URL", "\"\"")
+        buildConfigField("String", "DEFAULT_API_URL", "\"https://api.mdm-2isy.com/api/v1/device\"")
     }
 
     buildTypes {
@@ -24,7 +24,7 @@ android {
             buildConfigField(
                 "String",
                 "DEFAULT_API_URL",
-                "\"http://192.168.1.68:8000/api/v1/device\"",
+                "\"https://api.mdm-2isy.com/api/v1/device\"",
             )
         }
         release {

@@ -26,6 +26,10 @@ export class TermService {
     return this.http.get<ApiResponse<Terminal[]>>(this.apiUrl, { params });
   }
 
+  del(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
+  }
+
   updateGroup(id: number, deviceGroupId: number | null): Observable<ApiResponse<Terminal>> {
     return this.http.put<ApiResponse<Terminal>>(`${this.apiUrl}/${id}/group`, {
       device_group_id: deviceGroupId,

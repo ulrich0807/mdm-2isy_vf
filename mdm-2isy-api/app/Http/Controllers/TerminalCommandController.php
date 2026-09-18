@@ -174,6 +174,15 @@ class TerminalCommandController extends Controller
             app(\App\Services\FcmService::class)->sendCommand($terminal->fcm_token, $command->type, $command->payload ?? []);
         }
 
+        if (!$replayed) {
+            \App\Models\Log::create([
+                'usr' => $actor->name . ' (' . ucfirst($actor->role) . ')',
+                'act' => 'Commande ' . ucfirst($data['type']) . ' envoyée',
+                'cible' => 'Terminal ' . ($terminal->livreur ?: $terminal->modele ?: $terminal->id),
+                'typ' => 'primary'
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => $replayed

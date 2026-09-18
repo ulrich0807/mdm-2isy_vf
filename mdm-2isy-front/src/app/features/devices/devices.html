@@ -224,6 +224,13 @@
                   >🗑️ Effacer</button>
                   <button
                     type="button"
+                    (click)="supprimerTerminal(term)"
+                    class="btn btn-sm btn-light border text-danger me-1 fw-bold"
+                    [attr.aria-label]="'Supprimer le terminal ' + terminalImei(term)"
+                    title="Supprimer de la base de données"
+                  >❌ Supprimer</button>
+                  <button
+                    type="button"
                     (click)="toggleCommandHistory(term)"
                     class="btn btn-sm btn-light border fw-bold"
                     [disabled]="!term.public_id"

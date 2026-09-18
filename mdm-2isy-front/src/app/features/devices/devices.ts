@@ -472,6 +472,20 @@ export class Devices implements OnInit {
     );
   }
 
+  supprimerTerminal(terminal: Terminal): void {
+    if (!confirm(`Supprimer définitivement le terminal ${this.terminalImei(terminal)} de la base de données ?\nCeci n'efface pas les données du téléphone, ça le retire juste du tableau de bord.`)) {
+      return;
+    }
+
+    this.termSvc.del(terminal.id).subscribe({
+      next: () => this.chargerFlotte(),
+      error: (err) => {
+        this.contextError = this.apiError(err, 'Impossible de supprimer ce terminal.');
+        this.cdRef.detectChanges();
+      }
+    });
+  }
+
   ouvrirModalWipe(terminal: Terminal): void {
     if (!this.canSendCommand(terminal)) {
       this.setCommandFeedback(terminal, 'danger', this.commandActionTitle(terminal));

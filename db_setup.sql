@@ -1,0 +1,1 @@
+CREATE DATABASE IF NOT EXISTS mdm_2isy; CREATE USER IF NOT EXISTS 'mdm_user'@'localhost' IDENTIFIED BY 'Mdm_2isy_Secured2026!'; GRANT ALL PRIVILEGES ON mdm_2isy.* TO 'mdm_user'@'localhost'; FLUSH PRIVILEGES;

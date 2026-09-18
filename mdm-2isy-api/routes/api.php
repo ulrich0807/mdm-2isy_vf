@@ -87,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/terminals/{terminal}/commands', [TerminalCommandController::class, 'store'])
         ->whereUuid('terminal');
     Route::get('/terminals/{id}', [TerminalController::class, 'show'])->whereNumber('id');
+    Route::delete('/terminals/{id}', [TerminalController::class, 'destroy'])->whereNumber('id');
     Route::put('/terminals/{id}/group', [TerminalController::class, 'updateGroup'])->whereNumber('id');
     Route::post('/terminals/{id}/revoke-credential', [TerminalController::class, 'revokeCredential'])
         ->whereNumber('id');

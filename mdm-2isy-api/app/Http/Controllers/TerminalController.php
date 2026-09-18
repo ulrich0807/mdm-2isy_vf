@@ -137,6 +137,17 @@ class TerminalController extends Controller
         return $this->commandUnavailable($this->accessibleTerminal($request, $id));
     }
 
+    public function destroy(Request $request, int $id)
+    {
+        $terminal = $this->accessibleTerminal($request, $id);
+        $terminal->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Le terminal a été supprimé de la base de données.'
+        ]);
+    }
+
     private function accessibleTerminal(Request $request, int $id): Terminal
     {
         $organization = OrganizationAccess::resolve($request->user());

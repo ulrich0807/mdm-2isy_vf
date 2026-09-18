@@ -1,28 +1,28 @@
 <!-- Application du même dégradé bleu que la page de connexion -->
-<div class="h-100 d-flex flex-column shadow position-relative" style="width: 260px; background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%);">
+<div class="h-100 d-flex flex-column shadow position-relative" style="width: 250px; background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%);">
   
   <!-- Section Profil Utilisateur Dynamique -->
-  <div class="text-center py-4 px-3">
+  <div class="text-center py-3 px-3">
     <div class="mb-2">
       <div class="shadow-sm rounded-circle bg-white d-inline-flex align-items-center justify-content-center fw-bold"
-           style="width: 70px; height: 70px; color: #0044aa; font-size: 1.25rem;"
+           style="width: 50px; height: 50px; color: #0044aa; font-size: 1.1rem;"
            aria-hidden="true">
         {{ usrInitials }}
       </div>
     </div>
-    <h6 class="fw-bold m-0 text-white text-truncate">{{ usrName }}</h6>
-    <small class="text-white-50" style="font-size: 0.75rem;">Statut : {{ usrRole }}</small>
+    <h6 class="fw-bold m-0 text-white text-truncate" style="font-size: 0.95rem;">{{ usrName }}</h6>
+    <small class="text-white-50" style="font-size: 0.70rem;">Statut : {{ usrRole }}</small>
   </div>
   
   <!-- Menu de navigation -->
-  <ul class="nav flex-column px-3 gap-2 my-2 sidebar-menu flex-grow-1 overflow-y-auto" style="overflow-x: hidden;">
+  <ul class="nav flex-column px-3 gap-1 my-1 sidebar-menu flex-grow-1 overflow-y-auto" style="overflow-x: hidden;">
     <li class="nav-item w-100" *ngFor="let item of menuItems">
-      <a class="nav-link rounded-4 d-flex align-items-center py-2.5 px-3 text-white text-decoration-none" 
+      <a class="nav-link rounded-4 d-flex align-items-center py-2 px-3 text-white text-decoration-none" 
          [routerLink]="item.route" 
          routerLinkActive="active-menu"
          style="transition: all 0.2s ease;">
-        <span class="me-3 fs-5" style="width: 24px; text-align: center;">{{ item.icon }}</span> 
-        <span class="fs-6 text-truncate">{{ item.label }}</span>
+        <span class="me-3 fs-5" style="width: 22px; text-align: center;">{{ item.icon }}</span> 
+        <span style="font-size: 0.85rem;" class="text-truncate">{{ item.label }}</span>
       </a>
     </li>
   </ul>
@@ -32,8 +32,8 @@
     <button type="button" (click)="logout()" [disabled]="isLoggingOut"
             class="nav-link d-flex align-items-center py-2 px-3 text-white text-decoration-none rounded-4 border-0 w-100 text-start"
             style="background: rgba(255, 255, 255, 0.1);">
-      <span class="me-3 fs-5" style="width: 24px; text-align: center;">🚪</span> 
-      <span class="fs-6">{{ isLoggingOut ? 'Déconnexion...' : 'Déconnexion' }}</span>
+      <span class="me-3 fs-5" style="width: 22px; text-align: center;">🚪</span> 
+      <span style="font-size: 0.85rem;">{{ isLoggingOut ? 'Déconnexion...' : 'Déconnexion' }}</span>
     </button>
   </div>
 </div>

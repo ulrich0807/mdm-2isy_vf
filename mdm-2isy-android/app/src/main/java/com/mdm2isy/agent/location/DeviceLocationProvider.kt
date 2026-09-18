@@ -167,8 +167,8 @@ class AndroidCurrentLocationSource(
     ): String? {
         val candidates = if (highAccuracy) {
             listOf(
-                LocationManager.GPS_PROVIDER,
                 LocationManager.FUSED_PROVIDER,
+                LocationManager.GPS_PROVIDER,
                 LocationManager.NETWORK_PROVIDER,
             )
         } else {
