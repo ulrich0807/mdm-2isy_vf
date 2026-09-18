@@ -90,6 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/terminals/{id}', [TerminalController::class, 'destroy'])->whereNumber('id');
     Route::put('/terminals/{id}/group', [TerminalController::class, 'updateGroup'])->whereNumber('id');
     Route::put('/terminals/{id}/livreur', [TerminalController::class, 'updateLivreur'])->whereNumber('id');
+    Route::put('/terminals/{id}/profil', [TerminalController::class, 'updateProfil'])->whereNumber('id');
     Route::post('/terminals/{id}/revoke-credential', [TerminalController::class, 'revokeCredential'])
         ->whereNumber('id');
     Route::post('/terminals/{id}/locate', [TerminalCommandController::class, 'locate'])->whereNumber('id');

@@ -121,6 +121,14 @@ class DeviceHeartbeatController extends Controller
             'data' => [
                 'device_id' => $device->public_id,
                 'server_time' => $serverTime->toIso8601String(),
+                'policy' => $device->profil ? [
+                    'kiosk' => $device->profil->kiosk,
+                    'app_kiosk' => $device->profil->app_kiosk,
+                    'no_cam' => $device->profil->no_cam,
+                    'no_usb' => $device->profil->no_usb,
+                    'no_bt' => $device->profil->no_bt,
+                    'pin_fort' => $device->profil->pin_fort,
+                ] : null,
             ],
         ]);
     }

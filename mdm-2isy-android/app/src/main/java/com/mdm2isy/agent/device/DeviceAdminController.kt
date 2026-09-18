@@ -41,6 +41,11 @@ interface DevicePolicyGateway {
     fun wipeDeviceData(flags: Int)
 
     fun setLockTaskPackages(packages: Array<String>)
+    
+    fun setCameraDisabled(disabled: Boolean)
+    fun addUserRestriction(restriction: String)
+    fun clearUserRestriction(restriction: String)
+    fun resetPassword(password: String, flags: Int): Boolean
 }
 
 class AndroidDevicePolicyGateway(
@@ -73,6 +78,22 @@ class AndroidDevicePolicyGateway(
 
     override fun setLockTaskPackages(packages: Array<String>) {
         policyManager.setLockTaskPackages(adminComponent, packages)
+    }
+
+    override fun setCameraDisabled(disabled: Boolean) {
+        policyManager.setCameraDisabled(adminComponent, disabled)
+    }
+
+    override fun addUserRestriction(restriction: String) {
+        policyManager.addUserRestriction(adminComponent, restriction)
+    }
+
+    override fun clearUserRestriction(restriction: String) {
+        policyManager.clearUserRestriction(adminComponent, restriction)
+    }
+
+    override fun resetPassword(password: String, flags: Int): Boolean {
+        return policyManager.resetPassword(password, flags)
     }
 }
 
@@ -125,6 +146,40 @@ class DeviceAdminController(
 
         return invokePolicy("Le mode kiosque a été refusé par Android.") {
             gateway.setLockTaskPackages(packages)
+        }
+    }
+
+    fun applyPolicy(policy: com.mdm2isy.agent.model.SecurityPolicy): DeviceAdminOperationResult {
+        val precondition = requireActiveAdmin(requireDeviceOwner = true)
+        if (precondition != null) {
+            return precondition
+        }
+        
+        return invokePolicy("L'application de la politique a été refusée.") {
+            gateway.setCameraDisabled(policy.noCam)
+            
+            if (policy.noUsb) {
+                gateway.addUserRestriction(android.os.UserManager.DISALLOW_USB_FILE_TRANSFER)
+            } else {
+                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_USB_FILE_TRANSFER)
+            }
+            
+            if (policy.noBt) {
+                gateway.addUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+            } else {
+                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+            }
+            
+            if (policy.pinFort) {
+                // PIN setup requires more interaction, but we can set quality
+                // gateway.policyManager.setPasswordQuality(adminComponent, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
+            }
+            
+            if (policy.kiosk && !policy.appKiosk.isNullOrBlank()) {
+                gateway.setLockTaskPackages(arrayOf(policy.appKiosk))
+            } else {
+                gateway.setLockTaskPackages(emptyArray())
+            }
         }
     }
 

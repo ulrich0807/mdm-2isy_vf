@@ -105,9 +105,19 @@ data class HeartbeatRequest(
     }
 }
 
+data class SecurityPolicy(
+    val kiosk: Boolean = false,
+    val appKiosk: String? = null,
+    val noCam: Boolean = false,
+    val noUsb: Boolean = false,
+    val noBt: Boolean = false,
+    val pinFort: Boolean = false,
+)
+
 data class HeartbeatReceipt(
     val deviceId: String,
     val serverTime: String,
+    val policy: SecurityPolicy? = null,
 ) {
     init {
         require(isCanonicalUuid(deviceId)) { "The server returned an invalid device ID." }

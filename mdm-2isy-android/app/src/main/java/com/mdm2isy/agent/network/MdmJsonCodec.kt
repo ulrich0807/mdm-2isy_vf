@@ -54,9 +54,21 @@ internal object MdmJsonCodec {
 
     fun parseHeartbeat(body: String): HeartbeatReceipt = constructModel {
         val data = successDataObject(body)
+        val policyObj = data.opt("policy") as? JSONObject
+        val policy = policyObj?.let {
+            com.mdm2isy.agent.model.SecurityPolicy(
+                kiosk = it.optBoolean("kiosk", false),
+                appKiosk = it.optionalString("app_kiosk"),
+                noCam = it.optBoolean("no_cam", false),
+                noUsb = it.optBoolean("no_usb", false),
+                noBt = it.optBoolean("no_bt", false),
+                pinFort = it.optBoolean("pin_fort", false)
+            )
+        }
         HeartbeatReceipt(
             deviceId = data.requiredString("device_id"),
             serverTime = data.requiredString("server_time"),
+            policy = policy,
         )
     }
 

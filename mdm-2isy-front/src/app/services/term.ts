@@ -42,6 +42,12 @@ export class TermService {
     });
   }
 
+  updateProfil(id: number, profil_id: number | null): Observable<ApiResponse<Terminal>> {
+    return this.http.put<ApiResponse<Terminal>>(`${this.apiUrl}/${id}/profil`, {
+      profil_id: profil_id,
+    });
+  }
+
   getCommands(terminalPublicId: string): Observable<ApiResponse<DeviceCommand[]>> {
     return this.http.get<ApiResponse<DeviceCommand[]>>(
       `${this.apiUrl}/${encodeURIComponent(terminalPublicId)}/commands`,

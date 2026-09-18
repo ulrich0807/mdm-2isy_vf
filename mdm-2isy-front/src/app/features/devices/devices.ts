@@ -17,6 +17,7 @@ import { DeviceEnrollmentService } from '../../services/device-enrollment';
 import { DeviceGroupService } from '../../services/device-group';
 import { OrganizationService } from '../../services/organization';
 import { TermService } from '../../services/term';
+import { ProfService } from '../../services/prof';
 
 type CommandFeedback = {
   kind: 'success' | 'danger' | 'info';
@@ -35,6 +36,7 @@ export class Devices implements OnInit {
   organizations: Organization[] = [];
   groupes: DeviceGroup[] = [];
   enrollments: DeviceEnrollment[] = [];
+  profs: any[] = [];
 
   chargement = true;
   chargementOrganisations = false;
@@ -87,6 +89,7 @@ export class Devices implements OnInit {
     private organizationSvc: OrganizationService,
     private groupSvc: DeviceGroupService,
     private enrollmentSvc: DeviceEnrollmentService,
+    private profSvc: ProfService,
     private auth: Auth,
     private cdRef: ChangeDetectorRef,
   ) {}
@@ -157,6 +160,7 @@ export class Devices implements OnInit {
     this.chargerFlotte();
     this.chargerGroupes();
     this.chargerEnrollments();
+    this.chargerProfils();
   }
 
   chargerFlotte(): void {
@@ -332,6 +336,26 @@ export class Devices implements OnInit {
         this.contextError = this.apiError(err, "Impossible de modifier le groupe du terminal.");
         this.cdRef.detectChanges();
       },
+    });
+  }
+
+  modifierProfil(terminal: Terminal, newProfilId: string): void {
+    const parsedId = newProfilId ? parseInt(newProfilId, 10) : null;
+    this.termSvc.updateProfil(terminal.id, parsedId).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          const index = this.terminaux.findIndex((item) => item.id === terminal.id);
+          if (index !== -1) {
+            this.terminaux[index] = res.data;
+          }
+          this.filtrer();
+        }
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.contextError = this.apiError(err, "Impossible d'affecter le profil.");
+        this.cdRef.detectChanges();
+      }
     });
   }
 
@@ -1005,5 +1029,17 @@ export class Devices implements OnInit {
       }
     }
     return error?.error?.message || error?.error?.msg || fallback;
+  }
+
+  chargerProfils(): void {
+    this.profSvc.getAll().subscribe({
+      next: (res: any) => {
+        this.profs = res ?? [];
+        this.cdRef.detectChanges();
+      },
+      error: (err: any) => {
+        console.error("Impossible de charger les profils.", err);
+      }
+    });
   }
 }

@@ -9,4 +9,9 @@ class Profil extends Model
 {
     use HasFactory;
     protected $fillable = ['nom', 'kiosk', 'app_kiosk', 'no_cam', 'no_usb', 'no_bt', 'pin_fort'];
+
+    public function terminals()
+    {
+        return $this->hasMany(Terminal::class);
+    }
 }

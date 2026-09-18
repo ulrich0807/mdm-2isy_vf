@@ -49,6 +49,8 @@ export interface Terminal {
   agent_version?: string | null;
   last_seen_at?: string | null;
   lic?: any;
+  profil_id?: number | null;
+  profil?: any;
 }
 
 export interface EnrollmentPayload {

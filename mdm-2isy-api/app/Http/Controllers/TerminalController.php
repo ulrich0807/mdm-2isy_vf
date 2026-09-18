@@ -21,6 +21,7 @@ class TerminalController extends Controller
                 'organization:id,name,public_id',
                 'deviceGroup:id,name',
                 'lic:id,term_id,statut,exp_le',
+                'profil:id,nom,kiosk,app_kiosk,no_cam,no_usb,no_bt,pin_fort',
             ])
             ->when($organization, fn ($query) => $query->whereBelongsTo($organization))
             ->orderByDesc('last_seen_at')
@@ -41,6 +42,7 @@ class TerminalController extends Controller
                 'organization:id,name,public_id',
                 'deviceGroup:id,name',
                 'lic:id,term_id,statut,exp_le',
+                'profil:id,nom,kiosk,app_kiosk,no_cam,no_usb,no_bt,pin_fort',
             ]),
         ]);
     }
@@ -118,7 +120,27 @@ class TerminalController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Livreur mis à jour avec succès.',
-            'data' => $terminal->fresh()->load(['deviceGroup:id,name', 'lic:id,term_id,statut,exp_le']),
+            'data' => $terminal->fresh()->load(['deviceGroup:id,name', 'lic:id,term_id,statut,exp_le', 'profil']),
+        ]);
+    }
+
+    public function updateProfil(Request $request, int $id)
+    {
+        $terminal = $this->accessibleTerminal($request, $id);
+        $data = $request->validate([
+            'profil_id' => ['nullable', 'integer', 'exists:profils,id'],
+        ]);
+
+        $terminal->update(['profil_id' => $data['profil_id']]);
+
+        if ($terminal->fcm_token) {
+            app(\App\Services\FcmService::class)->sendCommand($terminal->fcm_token, 'sync_policy', []);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil mis à jour et synchronisation demandée.',
+            'data' => $terminal->fresh()->load(['deviceGroup:id,name', 'lic:id,term_id,statut,exp_le', 'profil']),
         ]);
     }
 

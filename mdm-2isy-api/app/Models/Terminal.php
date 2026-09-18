@@ -45,6 +45,7 @@ class Terminal extends Model
         'camera_active',
         'wifi_active',
         'bluetooth_active',
+        'profil_id',
     ];
 
     public function uniqueIds(): array
@@ -80,6 +81,11 @@ class Terminal extends Model
     public function lic(): HasOne
     {
         return $this->hasOne(Lic::class, 'term_id');
+    }
+
+    public function profil(): BelongsTo
+    {
+        return $this->belongsTo(Profil::class);
     }
 
     protected function connectivityStatus(): Attribute

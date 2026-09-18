@@ -133,6 +133,10 @@ class MdmAgentService : Service() {
                 }
                 nextHeartbeatAtEpochMs = System.currentTimeMillis() +
                     HEARTBEAT_INTERVAL_SECONDS * 1_000L
+                
+                receipt.policy?.let { policy ->
+                    DeviceAdminController(this@MdmAgentService).applyPolicy(policy)
+                }
             }
 
             consecutiveFailures = 0
