@@ -1,14 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { LayoutComponent } from '../../layout/layout';
 import { AlertService } from '../../services/alert.service';
 import { Alert } from '../../models/fleet.models';
 
 @Component({
   selector: 'app-alerts',
   standalone: true,
-  imports: [CommonModule, FormsModule, LayoutComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './alerts.html',
 })
 export class AlertsComponent implements OnInit {
