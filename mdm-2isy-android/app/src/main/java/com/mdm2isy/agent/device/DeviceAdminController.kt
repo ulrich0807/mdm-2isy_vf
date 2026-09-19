@@ -180,8 +180,15 @@ class DeviceAdminController(
                 // gateway.policyManager.setPasswordQuality(adminComponent, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
             }
             
-            if (policy.kiosk && !policy.appKiosk.isNullOrBlank()) {
-                gateway.setLockTaskPackages(arrayOf(policy.appKiosk))
+            if (policy.kiosk) {
+                if (policy.kioskApps.isNotEmpty()) {
+                    gateway.setLockTaskPackages(policy.kioskApps.toTypedArray())
+                } else if (!policy.appKiosk.isNullOrBlank()) {
+                    // Fallback for older profiles
+                    gateway.setLockTaskPackages(arrayOf(policy.appKiosk))
+                } else {
+                    gateway.setLockTaskPackages(emptyArray())
+                }
             } else {
                 gateway.setLockTaskPackages(emptyArray())
             }

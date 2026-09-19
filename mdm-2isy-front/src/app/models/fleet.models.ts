@@ -4,6 +4,19 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface SecurityProfile {
+  id: number;
+  nom: string;
+  kiosk: boolean;
+  app_kiosk?: string;
+  kiosk_apps?: string[];
+  no_cam: boolean;
+  no_usb: boolean;
+  no_bt: boolean;
+  pin_fort: boolean;
+  blacklist_apps?: string[];
+}
+
 export interface Organization {
   id: number;
   name: string;

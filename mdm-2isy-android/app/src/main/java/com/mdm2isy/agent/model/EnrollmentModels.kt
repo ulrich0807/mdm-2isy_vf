@@ -108,6 +108,7 @@ data class HeartbeatRequest(
 data class SecurityPolicy(
     val kiosk: Boolean = false,
     val appKiosk: String? = null,
+    val kioskApps: List<String> = emptyList(),
     val noCam: Boolean = false,
     val noUsb: Boolean = false,
     val noBt: Boolean = false,

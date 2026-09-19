@@ -14,7 +14,7 @@ export class Profils implements OnInit {
   load: boolean = true;
   showMod: boolean = false;
   
-  nvProf = { nom: '', kiosk: false, appKiosk: '', noCam: false, noUsb: false, noBt: false, pinFort: false, blacklistApps: '' };
+  nvProf = { nom: '', kiosk: false, appKiosk: '', kioskApps: '', noCam: false, noUsb: false, noBt: false, pinFort: false, blacklistApps: '' };
 
   constructor(private profSvc: ProfService, private cdRef: ChangeDetectorRef) {}
 
@@ -32,6 +32,7 @@ export class Profils implements OnInit {
           nom: p.nom,
           kiosk: p.kiosk == 1,
           appKiosk: p.app_kiosk,
+          kioskApps: Array.isArray(p.kiosk_apps) ? p.kiosk_apps.join(', ') : '',
           noCam: p.no_cam == 1,
           noUsb: p.no_usb == 1,
           noBt: p.no_bt == 1,
@@ -52,7 +53,7 @@ export class Profils implements OnInit {
   
   fermMod() { 
     this.showMod = false;
-    this.nvProf = { nom: '', kiosk: false, appKiosk: '', noCam: false, noUsb: false, noBt: false, pinFort: false, blacklistApps: '' };
+    this.nvProf = { nom: '', kiosk: false, appKiosk: '', kioskApps: '', noCam: false, noUsb: false, noBt: false, pinFort: false, blacklistApps: '' };
   }
 
   savProf() {
@@ -64,6 +65,7 @@ export class Profils implements OnInit {
       nom: this.nvProf.nom,
       kiosk: this.nvProf.kiosk,
       app_kiosk: this.nvProf.appKiosk,
+      kiosk_apps: this.nvProf.kioskApps ? this.nvProf.kioskApps.split(',').map(s => s.trim()).filter(s => s) : [],
       no_cam: this.nvProf.noCam,
       no_usb: this.nvProf.noUsb,
       no_bt: this.nvProf.noBt,

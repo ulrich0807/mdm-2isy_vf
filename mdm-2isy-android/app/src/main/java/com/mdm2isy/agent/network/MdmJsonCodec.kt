@@ -59,6 +59,9 @@ internal object MdmJsonCodec {
             com.mdm2isy.agent.model.SecurityPolicy(
                 kiosk = it.optBoolean("kiosk", false),
                 appKiosk = it.optionalString("app_kiosk"),
+                kioskApps = it.optJSONArray("kiosk_apps")?.let { arr ->
+                    List(arr.length()) { i -> arr.getString(i) }
+                } ?: emptyList(),
                 noCam = it.optBoolean("no_cam", false),
                 noUsb = it.optBoolean("no_usb", false),
                 noBt = it.optBoolean("no_bt", false),
