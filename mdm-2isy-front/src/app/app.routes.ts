@@ -30,6 +30,11 @@ export const routes: Routes = [
   { path: 'apps', component: Apps , canActivate: [authGrd]},
   { path: 'profils', component: Profils, canActivate: [authGrd] },
   { path: 'logs', component: Logs, canActivate: [authGrd] },
+  {
+    path: 'alerts',
+    loadComponent: () => import('./features/alerts/alerts').then((m) => m.AlertsComponent),
+    canActivate: [authGrd],
+  },
   
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: '**', redirectTo: '/login' }

@@ -22,7 +22,8 @@
          routerLinkActive="active-menu"
          style="transition: all 0.2s ease;">
         <span class="me-3 fs-5" style="width: 22px; text-align: center;">{{ item.icon }}</span> 
-        <span style="font-size: 0.85rem;" class="text-truncate">{{ item.label }}</span>
+        <span style="font-size: 0.85rem;" class="text-truncate flex-grow-1">{{ item.label }}</span>
+        <span *ngIf="item.badge" class="badge rounded-pill bg-danger" style="font-size: 0.70rem;">{{ item.badge }}</span>
       </a>
     </li>
   </ul>

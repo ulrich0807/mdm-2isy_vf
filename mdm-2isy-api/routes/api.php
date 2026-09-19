@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\AuthCtrl;
 use App\Http\Controllers\DeviceCommandController;
@@ -123,5 +124,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- JOURNAL D'AUDIT (LOGS) ---
     Route::get('/logs', [LogController::class, 'index']);
+
+    // --- CENTRE D'ALERTES ---
+    Route::get('/alerts', [AlertController::class, 'index']);
+    Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve'])->whereNumber('id');
 
 });

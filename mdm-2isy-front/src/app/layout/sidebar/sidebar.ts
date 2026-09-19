@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Auth } from '../../services/auth';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -19,6 +20,7 @@ export class Sidebar implements OnInit {
   menuItems = [
     { label: 'Tableau de bord', icon: '📊', route: '/dashboard' },
     { label: 'Flotte Terminaux', icon: '📱', route: '/devices' },
+    { label: 'Alertes', icon: '🔔', route: '/alerts', badge: 0 },
     { label: 'Localisation', icon: '📍', route: '/location' },
     { label: 'Licences', icon: '🔑', route: '/licences' },
     { label: 'Clients', icon: '👥', route: '/clients' },
@@ -31,6 +33,7 @@ export class Sidebar implements OnInit {
   constructor(
     private auth: Auth,
     private router: Router,
+    private alertSvc: AlertService
   ) {}
 
   ngOnInit() {
@@ -47,6 +50,21 @@ export class Sidebar implements OnInit {
     if (!this.isSuperAdmin) {
       this.menuItems = this.menuItems.filter(item => item.route !== '/clients');
     }
+
+    this.loadAlertsCount();
+  }
+
+  private loadAlertsCount(): void {
+    this.alertSvc.getAlerts('active').subscribe({
+      next: (res) => {
+        if (res.success) {
+          const alertItem = this.menuItems.find(i => i.route === '/alerts');
+          if (alertItem) {
+            alertItem.badge = res.data.length;
+          }
+        }
+      }
+    });
   }
 
   logout(): void {

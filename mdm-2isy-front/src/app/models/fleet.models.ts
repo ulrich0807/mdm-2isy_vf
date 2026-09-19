@@ -132,3 +132,14 @@ export interface CreateDeviceCommandPayload {
   confirmation?: string;
   current_password?: string;
 }
+
+export interface Alert {
+  id: number;
+  terminal_id: number;
+  type: 'offline' | 'battery' | 'storage' | string;
+  message: string;
+  resolved_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  terminal?: Terminal;
+}

@@ -13,3 +13,7 @@ Schedule::call(fn (): int => app(DeviceCommandService::class)->expirePending())
     ->name('device-commands:expire')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('mdm:check-alerts')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();

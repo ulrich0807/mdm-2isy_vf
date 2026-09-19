@@ -83,6 +83,11 @@ class Terminal extends Model
         return $this->hasOne(Lic::class, 'term_id');
     }
 
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class);
+    }
+
     public function profil(): BelongsTo
     {
         return $this->belongsTo(Profil::class);
