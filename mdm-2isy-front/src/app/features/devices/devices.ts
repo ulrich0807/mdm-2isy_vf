@@ -629,16 +629,17 @@ export class Devices implements OnInit {
 
     this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal)] = true;
 
-    this.issueCommandWithFeedback(
-      this.uninstallTerminal,
-      () => this.termSvc.uninstallApp(this.uninstallTerminal!.id, { packageName: this.uninstallPackage.trim() }),
-      "Commande de désinstallation mise en file.",
-      () => this.fermerModalUninstall(),
-      (message) => {
-        this.uninstallError = message;
-        this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal!)] = false;
+    this.termSvc.uninstallApp(this.uninstallTerminal!.id, { packageName: this.uninstallPackage.trim() }).subscribe({
+      next: () => {
+        this.setCommandFeedback(this.uninstallTerminal!, 'success', "Commande de désinstallation mise en file.");
+        this.fermerModalUninstall();
       },
-    );
+      error: (err: any) => {
+        const msg = err.error?.message || err.message || 'Erreur inconnue';
+        this.uninstallError = msg;
+        this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal!)] = false;
+      }
+    });
   }
 
   toggleCommandHistory(terminal: Terminal): void {
@@ -730,6 +731,8 @@ export class Devices implements OnInit {
       locate: 'Localisation',
       lock: 'Verrouillage',
       wipe: 'Effacement',
+      install_app: 'Installation',
+      uninstall_app: 'Désinstallation',
     };
     return labels[type];
   }
