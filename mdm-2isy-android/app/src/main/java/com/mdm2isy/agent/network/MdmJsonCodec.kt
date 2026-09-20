@@ -50,6 +50,7 @@ internal object MdmJsonCodec {
         .putOptional("storage_free_mb", request.storageFreeMb)
         .putOptional("lat", request.latitude)
         .putOptional("lng", request.longitude)
+        .putOptional("fcm_token", request.fcmToken)
         .apply {
             if (request.installedApps.isNotEmpty()) {
                 val appsArray = JSONArray()

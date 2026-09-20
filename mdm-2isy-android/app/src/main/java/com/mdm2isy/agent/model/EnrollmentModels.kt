@@ -71,6 +71,7 @@ data class HeartbeatRequest(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val installedApps: List<com.mdm2isy.agent.model.AppInfo> = emptyList(),
+    val fcmToken: String? = null,
 ) {
     init {
         requireLength(imei, 64, "imei")

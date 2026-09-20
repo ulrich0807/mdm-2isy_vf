@@ -126,9 +126,11 @@ class MdmAgentService : Service() {
             val api = MdmApiClient(session.apiUrl)
             val report = commandCoordinator.synchronize(api, session.deviceToken)
             if (now >= nextHeartbeatAtEpochMs) {
+                val prefs = getSharedPreferences("mdm_prefs", Context.MODE_PRIVATE)
+                val fcmToken = prefs.getString("fcm_token", null)
                 val receipt = api.heartbeat(
                     deviceToken = session.deviceToken,
-                    request = inventoryCollector.collect().toHeartbeatRequest(),
+                    request = inventoryCollector.collect().toHeartbeatRequest().copy(fcmToken = fcmToken),
                 )
                 if (!receipt.deviceId.equals(session.deviceId, ignoreCase = true)) {
                     throw MdmProtocolException("The heartbeat returned another device identity.")
