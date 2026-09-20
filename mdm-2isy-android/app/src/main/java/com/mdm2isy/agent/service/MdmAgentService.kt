@@ -285,7 +285,10 @@ class MdmAgentService : Service() {
         fun triggerImmediateSync(context: Context) {
             val intent = Intent(context.applicationContext, MdmAgentService::class.java)
             intent.putExtra("FORCE_SYNC", true)
-            context.applicationContext.startForegroundService(intent)
+            // On utilise startService classique car le service Foreground est probablement
+            // déjà lancé, et utiliser startForegroundService depuis le background (ex: receiver FCM)
+            // provoque un ForegroundServiceStartNotAllowedException sous Android 12+.
+            context.applicationContext.startService(intent)
         }
     }
 }

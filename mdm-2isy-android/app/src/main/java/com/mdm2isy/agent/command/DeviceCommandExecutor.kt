@@ -30,6 +30,7 @@ data class CommandExecutionProof(
     val executedAt: String,
     val locked: Boolean? = null,
     val wipeStarted: Boolean? = null,
+    val installedApps: List<String>? = null,
 )
 
 sealed interface CommandExecutionResult {
@@ -56,8 +57,21 @@ class DeviceCommandExecutor(
     constructor(context: Context) : this(
         adminController = DeviceAdminController(context),
         locationProvider = DeviceLocationProvider(context),
-        appInstaller = AppInstaller(context),
+        appInstaller = AndroidAppInstaller(context),
+        context = context,
     )
+
+    private var appContext: Context? = null
+    
+    constructor(
+        adminController: DeviceAdminController,
+        locationProvider: DeviceLocationProvider,
+        appInstaller: AppInstaller,
+        context: Context,
+        clock: Clock = Clock.systemUTC()
+    ) : this(adminController, locationProvider, appInstaller, clock) {
+        this.appContext = context.applicationContext
+    }
 
     fun execute(
         command: DeviceCommand,
@@ -68,6 +82,7 @@ class DeviceCommandExecutor(
         KnownCommandType.WIPE -> executeWipe(callback)
         KnownCommandType.INSTALL_APP -> executeInstallApp(command, callback)
         KnownCommandType.UNINSTALL_APP -> executeUninstallApp(command, callback)
+        KnownCommandType.INVENTORY -> executeInventory(callback)
         null -> immediate(
             callback,
             CommandExecutionResult.Failure(
@@ -92,6 +107,9 @@ class DeviceCommandExecutor(
                 ),
             )
         }
+
+        // Force l'activation de la localisation avant de lancer la recherche
+        adminController.forceLocationEnabled()
 
         val request = locationProvider.locate(
             timeoutMillis = timeoutSeconds * 1_000L,
@@ -242,6 +260,48 @@ class DeviceCommandExecutor(
         }
 
         return CommandExecutionHandle { }
+    }
+
+    private fun executeInventory(
+        callback: (CommandExecutionResult) -> Unit,
+    ): CommandExecutionHandle {
+        val pm = appContext?.packageManager
+        if (pm == null) {
+            return immediate(
+                callback,
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.DEVICE_OPERATION_FAILED,
+                    "Contexte de l'application indisponible."
+                )
+            )
+        }
+        
+        try {
+            val packages = pm.getInstalledPackages(0)
+            val userApps = packages.filter { 
+                val flags = it.applicationInfo?.flags ?: 0
+                (flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 
+            }.map { it.packageName }
+            
+            return immediate(
+                callback,
+                CommandExecutionResult.Success(
+                    CommandExecutionProof(
+                        executedAt = executedAt(),
+                        installedApps = userApps,
+                        message = "Inventaire recupere avec succes (${userApps.size} applications)."
+                    )
+                )
+            )
+        } catch (e: Exception) {
+            return immediate(
+                callback,
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.DEVICE_OPERATION_FAILED,
+                    "Erreur lors de la recuperation de l'inventaire: ${e.message}"
+                )
+            )
+        }
     }
 
     private fun DeviceAdminOperationResult.Failed.toCommandFailure(): CommandExecutionResult.Failure {

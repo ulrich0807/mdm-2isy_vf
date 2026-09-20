@@ -70,6 +70,7 @@ data class HeartbeatRequest(
     val storageFreeMb: Long? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    val installedApps: List<String> = emptyList(),
 ) {
     init {
         requireLength(imei, 64, "imei")

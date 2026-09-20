@@ -9,9 +9,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
 
-class AppInstaller(private val context: Context) {
+interface AppInstaller {
+    fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit)
+    fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit)
+}
 
-    fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit) {
+class AndroidAppInstaller(private val context: Context) : AppInstaller {
+
+    override fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit) {
         thread {
             try {
                 val url = URL(apkUrl)
@@ -60,7 +65,7 @@ class AppInstaller(private val context: Context) {
         }
     }
 
-    fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit) {
+    override fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit) {
         try {
             val packageInstaller = context.packageManager.packageInstaller
             val intent = Intent("com.mdm2isy.agent.ACTION_UNINSTALL_COMPLETE")

@@ -47,6 +47,8 @@ interface DevicePolicyGateway {
     fun clearUserRestriction(restriction: String)
     fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean
     fun resetPassword(password: String, flags: Int): Boolean
+    
+    fun setLocationEnabled(enabled: Boolean)
 }
 
 class AndroidDevicePolicyGateway(
@@ -100,6 +102,19 @@ class AndroidDevicePolicyGateway(
     override fun resetPassword(password: String, flags: Int): Boolean {
         return policyManager.resetPassword(password, flags)
     }
+
+    override fun setLocationEnabled(enabled: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            policyManager.setLocationEnabled(adminComponent, enabled)
+        } else {
+            @Suppress("DEPRECATION")
+            policyManager.setSecureSetting(
+                adminComponent,
+                android.provider.Settings.Secure.LOCATION_MODE,
+                if (enabled) "3" else "0" // 3 = LOCATION_MODE_HIGH_ACCURACY, 0 = OFF
+            )
+        }
+    }
 }
 
 /**
@@ -123,6 +138,17 @@ class DeviceAdminController(
 
         return invokePolicy("Le verrouillage a ete refuse par Android.") {
             gateway.lockNow()
+        }
+    }
+
+    fun forceLocationEnabled(): DeviceAdminOperationResult {
+        val precondition = requireActiveAdmin(requireDeviceOwner = true)
+        if (precondition != null) {
+            return precondition
+        }
+
+        return invokePolicy("L'activation du GPS a ete refusee par Android.") {
+            gateway.setLocationEnabled(true)
         }
     }
 

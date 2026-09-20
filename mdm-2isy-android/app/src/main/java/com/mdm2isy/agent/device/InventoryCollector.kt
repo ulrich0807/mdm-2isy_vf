@@ -22,6 +22,7 @@ data class InventorySnapshot(
     val storageTotalMb: Long,
     val storageFreeMb: Long,
     val agentVersion: String,
+    val installedApps: List<String>,
 )
 
 fun interface InventorySource {
@@ -55,7 +56,17 @@ class AndroidInventorySource(
             storageTotalMb = storage.totalBytes.coerceAtLeast(0L) / BYTES_PER_MEBIBYTE,
             storageFreeMb = storage.availableBytes.coerceAtLeast(0L) / BYTES_PER_MEBIBYTE,
             agentVersion = readAgentVersion(),
+            installedApps = readInstalledApps(),
         )
+    }
+
+    private fun readInstalledApps(): List<String> {
+        val pm = applicationContext.packageManager
+        val packages = pm.getInstalledPackages(0)
+        return packages.filter {
+            val appInfo = it.applicationInfo
+            appInfo != null && (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0
+        }.map { it.packageName }
     }
 
     private fun readBatteryLevel(): Int? {

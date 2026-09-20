@@ -4,6 +4,10 @@ import android.Manifest
 import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.pm.PackageManager
+import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -192,6 +196,18 @@ class MainActivity : Activity() {
         val missing = FOREGROUND_RUNTIME_PERMISSIONS.filter {
             checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
         }
+        
+        val pm = getSystemService(android.content.Context.POWER_SERVICE) as? PowerManager
+        if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+            } catch (e: Exception) {
+                // Ignore si l'intent n'est pas géré
+            }
+        }
+
         if (missing.isNotEmpty()) {
             requestPermissions(missing.toTypedArray(), PERMISSIONS_REQUEST_CODE)
         } else {

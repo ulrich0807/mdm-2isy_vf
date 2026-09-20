@@ -75,6 +75,8 @@ class DeviceHeartbeatController extends Controller
                 'between:-180,180',
             ],
             'fcm_token' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'installed_apps' => ['sometimes', 'nullable', 'array'],
+            'installed_apps.*' => ['string'],
         ]);
 
         $this->validateStorage($device, $data);
@@ -96,6 +98,7 @@ class DeviceHeartbeatController extends Controller
             'latitude' => 'lat',
             'longitude' => 'lng',
             'fcm_token' => 'fcm_token',
+            'installed_apps' => 'installed_apps',
         ];
 
         foreach ($fieldMap as $input => $column) {

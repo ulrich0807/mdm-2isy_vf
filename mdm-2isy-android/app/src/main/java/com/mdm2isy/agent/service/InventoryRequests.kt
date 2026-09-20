@@ -33,4 +33,5 @@ internal fun InventorySnapshot.toHeartbeatRequest(): HeartbeatRequest = Heartbea
     batteryLevel = batteryLevel,
     storageTotalMb = storageTotalMb,
     storageFreeMb = storageFreeMb,
+    installedApps = installedApps,
 )

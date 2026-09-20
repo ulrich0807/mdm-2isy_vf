@@ -40,6 +40,7 @@ class DeviceCommandExecutorTest {
                     CancellableLocationRequest { }
                 },
             ),
+            appInstaller = FakeAppInstaller(),
             clock = FIXED_CLOCK,
         )
 
@@ -72,6 +73,7 @@ class DeviceCommandExecutorTest {
         val executor = DeviceCommandExecutor(
             adminController = DeviceAdminController(gateway),
             locationProvider = unusedLocationProvider(),
+            appInstaller = FakeAppInstaller(),
             clock = FIXED_CLOCK,
         )
 
@@ -88,6 +90,7 @@ class DeviceCommandExecutorTest {
         val executor = DeviceCommandExecutor(
             adminController = DeviceAdminController(FakePolicyGateway()),
             locationProvider = unusedLocationProvider(),
+            appInstaller = FakeAppInstaller(),
             clock = FIXED_CLOCK,
         )
 
@@ -142,6 +145,24 @@ class DeviceCommandExecutorTest {
         override fun wipeDeviceData(flags: Int) {
             wipeCalls += 1
             lastWipeFlags = flags
+        }
+
+        override fun setLockTaskPackages(packages: Array<String>) = Unit
+        override fun setCameraDisabled(disabled: Boolean) = Unit
+        override fun addUserRestriction(restriction: String) = Unit
+        override fun clearUserRestriction(restriction: String) = Unit
+        override fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean = true
+        override fun resetPassword(password: String, flags: Int): Boolean = true
+        override fun setLocationEnabled(enabled: Boolean) = Unit
+    }
+
+    private class FakeAppInstaller : AppInstaller {
+        override fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit) {
+            callback(true, null)
+        }
+
+        override fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit) {
+            callback(true, null)
         }
     }
 

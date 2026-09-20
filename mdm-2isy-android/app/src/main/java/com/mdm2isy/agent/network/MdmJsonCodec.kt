@@ -50,6 +50,11 @@ internal object MdmJsonCodec {
         .putOptional("storage_free_mb", request.storageFreeMb)
         .putOptional("lat", request.latitude)
         .putOptional("lng", request.longitude)
+        .apply {
+            if (request.installedApps.isNotEmpty()) {
+                put("installed_apps", JSONArray(request.installedApps))
+            }
+        }
         .toString()
 
     fun parseHeartbeat(body: String): HeartbeatReceipt = constructModel {
@@ -184,6 +189,11 @@ internal object MdmJsonCodec {
         .putOptional("executed_at", proof.executedAt)
         .putOptional("locked", proof.locked)
         .putOptional("wipe_started", proof.wipeStarted)
+        .apply {
+            if (proof.installedApps != null) {
+                put("installed_apps", JSONArray(proof.installedApps))
+            }
+        }
 
     private fun successDataObject(body: String): JSONObject {
         val root = successRoot(body)

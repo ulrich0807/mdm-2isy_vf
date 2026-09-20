@@ -64,6 +64,7 @@ export interface Terminal {
   lic?: any;
   profil_id?: number | null;
   profil?: any;
+  installed_apps?: string[] | null;
 }
 
 export interface EnrollmentPayload {

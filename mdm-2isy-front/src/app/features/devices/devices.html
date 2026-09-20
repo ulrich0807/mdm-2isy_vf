@@ -528,14 +528,33 @@
       <div *ngIf="uninstallError" class="alert alert-danger py-2 small">{{ uninstallError }}</div>
 
       <div class="mb-4">
-        <label class="form-label small fw-bold text-muted">Nom du package (ex: com.whatsapp)</label>
-        <input
-          name="uninstallPackage"
-          type="text"
-          [(ngModel)]="uninstallPackage"
-          class="form-control font-monospace"
-          required
-        >
+        <label class="form-label small fw-bold text-muted">Nom du package</label>
+        
+        <ng-container *ngIf="uninstallTerminal?.installed_apps?.length; else manualInput">
+          <select
+            name="uninstallPackage"
+            [(ngModel)]="uninstallPackage"
+            class="form-select font-monospace"
+            required
+          >
+            <option value="" disabled>Sélectionnez une application</option>
+            <option *ngFor="let pkg of uninstallTerminal?.installed_apps" [value]="pkg">
+              {{ pkg }}
+            </option>
+          </select>
+        </ng-container>
+
+        <ng-template #manualInput>
+          <input
+            name="uninstallPackage"
+            type="text"
+            [(ngModel)]="uninstallPackage"
+            class="form-control font-monospace"
+            placeholder="ex: com.whatsapp"
+            required
+          >
+          <small class="text-muted d-block mt-1">L'agent n'a pas encore remonté la liste des applications.</small>
+        </ng-template>
       </div>
 
       <div class="d-flex justify-content-end gap-2">

@@ -46,6 +46,7 @@ class Terminal extends Model
         'wifi_active',
         'bluetooth_active',
         'profil_id',
+        'installed_apps',
     ];
 
     public function uniqueIds(): array
@@ -120,6 +121,7 @@ class Terminal extends Model
             'bluetooth_active' => 'boolean',
             'enrolled_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'installed_apps' => 'array',
         ];
     }
 }

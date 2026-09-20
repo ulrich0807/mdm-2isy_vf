@@ -91,6 +91,25 @@ internal object CommandResultCodec {
                         )
                     }
 
+                    KnownCommandType.INVENTORY -> {
+                        val appsArray = proof.optJSONArray("installed_apps")
+                        val apps = buildList {
+                            if (appsArray != null) {
+                                for (i in 0 until appsArray.length()) {
+                                    val pkg = appsArray.optString(i)
+                                    if (pkg.isNotBlank()) add(pkg)
+                                }
+                            }
+                        }
+                        CommandResultRequest.succeeded(
+                            CommandProof.inventory(
+                                apps = apps,
+                                message = proof.optionalString("message"),
+                                executedAt = proof.optionalString("executed_at"),
+                            ),
+                        )
+                    }
+
                     null -> CommandResultRequest.failed(
                         INVALID_PROOF,
                         "Le résultat local concerne un type de commande inconnu.",
@@ -149,6 +168,16 @@ internal object CommandResultCodec {
         KnownCommandType.UNINSTALL_APP -> {
             CommandResultRequest.succeeded(
                 CommandProof.uninstallApp(proof.message, proof.executedAt),
+            )
+        }
+
+        KnownCommandType.INVENTORY -> {
+            CommandResultRequest.succeeded(
+                CommandProof.inventory(
+                    apps = proof.installedApps ?: emptyList(),
+                    message = proof.message,
+                    executedAt = proof.executedAt,
+                ),
             )
         }
 
