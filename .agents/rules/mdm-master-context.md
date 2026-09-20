@@ -24,3 +24,13 @@ Ce fichier sert de mémoire vive pour tout assistant travaillant sur ce projet. I
 - **Ne pas suggérer de recréer l`'`architecture FCM** : L`'`architecture actuelle basée sur FCM fonctionne et est requise pour passer outre les restrictions de batterie OEM.
 - **Rétrocompatibilité** : Toujours tester ou vérifier les imports `android.app.admin.DevicePolicyManager` (vérifier que c`'`est bien le bon `adminComponent` passé en paramètre).
 
+
+## État d'avancement par rapport au CDC
+Le projet est en grande partie conforme au CDC. L'installation silencieuse, le wipe, le lock, le kiosk et FCM sont opérationnels.
+
+**Les 4 tâches prioritaires restantes pour finaliser la conformité au CDC :**
+1. **Restrictions Réseau (Déconnexion)** : Empêcher l'utilisateur de couper le WiFi/Données/Mode Avion. Nécessite l'ajout de lock_wifi, lock_data, etc. dans les Profils Laravel, le Dashboard Angular, et leur application via DevicePolicyManager.addUserRestriction() dans l'agent Android.
+2. **Historique des positions** : Créer une table LocationHistory dans Laravel (actuellement, on ne garde que la dernière position dans 	erminals) et l'affichage Angular associé.
+3. **Liste Blanche d'Applications** : Compléter le système de lacklist_apps par une véritable logique de liste blanche (cacher tout le reste sans forcer un Kiosque strict).
+4. **Responsivité Dashboard** : Optimiser le CSS de l'interface Angular pour les petits écrans.
+
