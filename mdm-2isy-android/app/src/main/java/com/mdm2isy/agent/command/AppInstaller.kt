@@ -69,7 +69,18 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
 
     override fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit) {
         try {
-            val packageInstaller = context.packageManager.packageInstaller
+            val pm = context.packageManager
+            val appInfo = pm.getApplicationInfo(packageName, 0)
+            if ((appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0) {
+                // Pour les applications système, on ne peut pas les désinstaller, on les masque.
+                val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+                val componentName = android.content.ComponentName(context, com.mdm2isy.agent.device.MdmDeviceAdminReceiver::class.java)
+                dpm.setApplicationHidden(componentName, packageName, true)
+                callback(true, null)
+                return
+            }
+
+            val packageInstaller = pm.packageInstaller
             val intent = Intent("com.mdm2isy.agent.ACTION_UNINSTALL_COMPLETE").apply {
                 setPackage(context.packageName)
             }

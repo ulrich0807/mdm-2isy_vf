@@ -62,6 +62,17 @@ class AndroidInventorySource(
 
     private fun readInstalledApps(): List<com.mdm2isy.agent.model.AppInfo> {
         val pm = applicationContext.packageManager
+        
+        // Trouver toutes les applications qui ont une icône sur l'écran d'accueil
+        val intent = android.content.Intent(android.content.Intent.ACTION_MAIN, null)
+        intent.addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        val launchablePackages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0L))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.queryIntentActivities(intent, 0)
+        }.map { it.activityInfo.packageName }.toSet()
+
         val flags = PackageManager.GET_META_DATA
         val applications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(flags.toLong()))
@@ -71,7 +82,8 @@ class AndroidInventorySource(
         }
         
         return applications.filter { 
-            (it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 
+            // On conserve si ce n'est pas une appli système OU si elle a une icône visible
+            (it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 || launchablePackages.contains(it.packageName)
         }.map { 
             com.mdm2isy.agent.model.AppInfo(
                 name = it.loadLabel(pm).toString(),

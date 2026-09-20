@@ -289,8 +289,19 @@ class DeviceCommandExecutor(
         
         try {
             val apps = pm.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
+            
+            // Trouver toutes les applications qui ont une icône sur l'écran d'accueil
+            val intent = android.content.Intent(android.content.Intent.ACTION_MAIN, null)
+            intent.addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+            val launchablePackages = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(intent, android.content.pm.PackageManager.ResolveInfoFlags.of(0L))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.queryIntentActivities(intent, 0)
+            }.map { it.activityInfo.packageName }.toSet()
+
             val userApps = apps.filter { 
-                (it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 
+                (it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 || launchablePackages.contains(it.packageName)
             }.map { 
                 com.mdm2isy.agent.model.AppInfo(
                     name = it.loadLabel(pm).toString(),
