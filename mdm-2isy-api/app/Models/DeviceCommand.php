@@ -18,6 +18,10 @@ class DeviceCommand extends Model
 
     public const TYPE_WIPE = 'wipe';
 
+    public const TYPE_INSTALL_APP = 'install_app';
+
+    public const TYPE_UNINSTALL_APP = 'uninstall_app';
+
     public const STATUS_QUEUED = 'queued';
 
     public const STATUS_SENT = 'sent';
@@ -35,6 +39,8 @@ class DeviceCommand extends Model
         self::TYPE_LOCATE,
         self::TYPE_LOCK,
         self::TYPE_WIPE,
+        self::TYPE_INSTALL_APP,
+        self::TYPE_UNINSTALL_APP,
     ];
 
     /** @var list<string> */

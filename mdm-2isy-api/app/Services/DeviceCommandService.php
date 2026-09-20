@@ -25,6 +25,8 @@ class DeviceCommandService
         DeviceCommand::TYPE_LOCATE => 5,
         DeviceCommand::TYPE_LOCK => 15,
         DeviceCommand::TYPE_WIPE => 30,
+        DeviceCommand::TYPE_INSTALL_APP => 60,
+        DeviceCommand::TYPE_UNINSTALL_APP => 60,
     ];
 
     /**
