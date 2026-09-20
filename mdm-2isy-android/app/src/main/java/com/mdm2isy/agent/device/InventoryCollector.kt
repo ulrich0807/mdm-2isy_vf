@@ -62,9 +62,15 @@ class AndroidInventorySource(
 
     private fun readInstalledApps(): List<String> {
         val pm = applicationContext.packageManager
-        val packages = pm.getInstalledPackages(0)
-        return packages.filter {
-            val appInfo = it.applicationInfo
+        val flags = PackageManager.GET_META_DATA
+        val applications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(flags.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.getInstalledApplications(flags)
+        }
+        
+        return applications.filter { appInfo ->
             appInfo != null && (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0
         }.map { it.packageName }
     }

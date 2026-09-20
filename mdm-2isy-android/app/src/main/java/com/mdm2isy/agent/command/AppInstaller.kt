@@ -48,7 +48,9 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                 // We commit the session but we don't strictly wait for the broadcast for the command proof
                 // because the MDM protocol requires an immediate result for the transition.
                 // In a production app, you would use a PendingIntent and a BroadcastReceiver.
-                val intent = Intent("com.mdm2isy.agent.ACTION_INSTALL_COMPLETE")
+                val intent = Intent("com.mdm2isy.agent.ACTION_INSTALL_COMPLETE").apply {
+                    setPackage(context.packageName)
+                }
                 val pendingIntent = PendingIntent.getBroadcast(
                     context,
                     sessionId,
@@ -68,7 +70,9 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
     override fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit) {
         try {
             val packageInstaller = context.packageManager.packageInstaller
-            val intent = Intent("com.mdm2isy.agent.ACTION_UNINSTALL_COMPLETE")
+            val intent = Intent("com.mdm2isy.agent.ACTION_UNINSTALL_COMPLETE").apply {
+                setPackage(context.packageName)
+            }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
                 System.currentTimeMillis().toInt(),

@@ -69,6 +69,8 @@ class MdmAgentService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        promoteToForeground()
+        
         if (!enrollmentStore.isEnrolled()) {
             stopReason = "Le terminal n'est pas enrôlé."
             stopSelf(startId)
@@ -285,10 +287,15 @@ class MdmAgentService : Service() {
         fun triggerImmediateSync(context: Context) {
             val intent = Intent(context.applicationContext, MdmAgentService::class.java)
             intent.putExtra("FORCE_SYNC", true)
-            // On utilise startService classique car le service Foreground est probablement
-            // déjà lancé, et utiliser startForegroundService depuis le background (ex: receiver FCM)
-            // provoque un ForegroundServiceStartNotAllowedException sous Android 12+.
-            context.applicationContext.startService(intent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.applicationContext.startForegroundService(intent)
+                } else {
+                    context.applicationContext.startService(intent)
+                }
+            } catch (e: Exception) {
+                // Ignore exception, Device Owner should be exempt.
+            }
         }
     }
 }
