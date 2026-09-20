@@ -65,8 +65,8 @@ class DeviceCommandController extends Controller
             'result' => [
                 'sometimes',
                 'nullable',
-                'array:lat,lng,accuracy_m,message,executed_at,locked,wipe_started',
-                'max:7',
+                'array:lat,lng,accuracy_m,message,executed_at,locked,wipe_started,installed_apps',
+                'max:8',
             ],
             'result.lat' => ['required_with:result.lng', 'numeric', 'between:-90,90'],
             'result.lng' => ['required_with:result.lat', 'numeric', 'between:-180,180'],
@@ -75,6 +75,7 @@ class DeviceCommandController extends Controller
             'result.executed_at' => ['sometimes', 'date_format:Y-m-d\TH:i:sP'],
             'result.locked' => ['sometimes', 'boolean'],
             'result.wipe_started' => ['sometimes', 'boolean'],
+            'result.installed_apps' => ['sometimes', 'array'],
             'error_code' => [
                 'required_if:status,failed',
                 'prohibited_unless:status,failed',

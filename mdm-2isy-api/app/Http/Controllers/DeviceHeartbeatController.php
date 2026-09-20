@@ -76,7 +76,6 @@ class DeviceHeartbeatController extends Controller
             ],
             'fcm_token' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'installed_apps' => ['sometimes', 'nullable', 'array'],
-            'installed_apps.*' => ['string'],
         ]);
 
         $this->validateStorage($device, $data);
