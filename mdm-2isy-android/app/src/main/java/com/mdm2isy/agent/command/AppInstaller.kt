@@ -55,7 +55,7 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                     context,
                     sessionId,
                     intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 session.commit(pendingIntent.intentSender)
 
@@ -77,7 +77,7 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                 context,
                 System.currentTimeMillis().toInt(),
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             packageInstaller.uninstall(packageName, pendingIntent.intentSender)
             callback(true, null)

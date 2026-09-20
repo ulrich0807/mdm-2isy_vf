@@ -30,7 +30,7 @@ data class CommandExecutionProof(
     val executedAt: String,
     val locked: Boolean? = null,
     val wipeStarted: Boolean? = null,
-    val installedApps: List<String>? = null,
+    val installedApps: List<com.mdm2isy.agent.model.AppInfo>? = null,
 )
 
 sealed interface CommandExecutionResult {
@@ -288,11 +288,15 @@ class DeviceCommandExecutor(
         }
         
         try {
-            val packages = pm.getInstalledPackages(0)
-            val userApps = packages.filter { 
-                val flags = it.applicationInfo?.flags ?: 0
-                (flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 
-            }.map { it.packageName }
+            val apps = pm.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
+            val userApps = apps.filter { 
+                (it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 
+            }.map { 
+                com.mdm2isy.agent.model.AppInfo(
+                    name = it.loadLabel(pm).toString(),
+                    packageName = it.packageName
+                )
+            }
             
             return immediate(
                 callback,

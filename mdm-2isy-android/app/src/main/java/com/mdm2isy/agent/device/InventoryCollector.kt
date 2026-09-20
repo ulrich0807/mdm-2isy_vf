@@ -22,7 +22,7 @@ data class InventorySnapshot(
     val storageTotalMb: Long,
     val storageFreeMb: Long,
     val agentVersion: String,
-    val installedApps: List<String>,
+    val installedApps: List<com.mdm2isy.agent.model.AppInfo>,
 )
 
 fun interface InventorySource {
@@ -60,7 +60,7 @@ class AndroidInventorySource(
         )
     }
 
-    private fun readInstalledApps(): List<String> {
+    private fun readInstalledApps(): List<com.mdm2isy.agent.model.AppInfo> {
         val pm = applicationContext.packageManager
         val flags = PackageManager.GET_META_DATA
         val applications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -70,7 +70,14 @@ class AndroidInventorySource(
             pm.getInstalledApplications(flags)
         }
         
-        return applications.map { it.packageName }
+        return applications.filter { 
+            (it.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 
+        }.map { 
+            com.mdm2isy.agent.model.AppInfo(
+                name = it.loadLabel(pm).toString(),
+                packageName = it.packageName
+            )
+        }
     }
 
     private fun readBatteryLevel(): Int? {

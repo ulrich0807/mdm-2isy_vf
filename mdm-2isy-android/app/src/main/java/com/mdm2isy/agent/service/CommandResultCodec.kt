@@ -96,8 +96,17 @@ internal object CommandResultCodec {
                         val apps = buildList {
                             if (appsArray != null) {
                                 for (i in 0 until appsArray.length()) {
-                                    val pkg = appsArray.optString(i)
-                                    if (pkg.isNotBlank()) add(pkg)
+                                    val obj = appsArray.optJSONObject(i)
+                                    if (obj != null) {
+                                        add(com.mdm2isy.agent.model.AppInfo(
+                                            name = obj.optString("name", "Unknown"),
+                                            packageName = obj.optString("packageName")
+                                        ))
+                                    } else {
+                                        // Fallback for older versions sending strings
+                                        val pkg = appsArray.optString(i)
+                                        if (pkg.isNotBlank()) add(com.mdm2isy.agent.model.AppInfo(name = pkg, packageName = pkg))
+                                    }
                                 }
                             }
                         }

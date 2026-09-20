@@ -70,7 +70,7 @@ data class HeartbeatRequest(
     val storageFreeMb: Long? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val installedApps: List<String> = emptyList(),
+    val installedApps: List<com.mdm2isy.agent.model.AppInfo> = emptyList(),
 ) {
     init {
         requireLength(imei, 64, "imei")

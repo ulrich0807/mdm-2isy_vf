@@ -530,7 +530,7 @@
       <div class="mb-4">
         <label class="form-label small fw-bold text-muted">Nom du package</label>
         
-        <ng-container *ngIf="uninstallTerminal?.installed_apps?.length; else manualInput">
+        <ng-container *ngIf="getUninstallApps(uninstallTerminal).length; else manualInput">
           <select
             name="uninstallPackage"
             [(ngModel)]="uninstallPackage"
@@ -538,8 +538,8 @@
             required
           >
             <option value="" disabled>Sélectionnez une application</option>
-            <option *ngFor="let pkg of uninstallTerminal?.installed_apps" [value]="pkg">
-              {{ pkg }}
+            <option *ngFor="let pkg of getUninstallApps(uninstallTerminal)" [value]="pkg.packageName">
+              {{ pkg.name }} ({{ pkg.packageName }})
             </option>
           </select>
         </ng-container>

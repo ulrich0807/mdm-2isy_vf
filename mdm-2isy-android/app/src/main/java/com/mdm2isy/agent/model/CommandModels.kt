@@ -83,7 +83,7 @@ data class CommandProof private constructor(
     val executedAt: String? = null,
     val locked: Boolean? = null,
     val wipeStarted: Boolean? = null,
-    val installedApps: List<String>? = null,
+    val installedApps: List<com.mdm2isy.agent.model.AppInfo>? = null,
 ) {
     companion object {
         fun locate(
@@ -159,7 +159,7 @@ data class CommandProof private constructor(
         }
 
         fun inventory(
-            apps: List<String>,
+            apps: List<com.mdm2isy.agent.model.AppInfo>,
             message: String? = null,
             executedAt: String? = null,
         ): CommandProof {

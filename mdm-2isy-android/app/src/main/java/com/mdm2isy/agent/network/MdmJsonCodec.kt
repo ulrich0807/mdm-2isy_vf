@@ -52,7 +52,9 @@ internal object MdmJsonCodec {
         .putOptional("lng", request.longitude)
         .apply {
             if (request.installedApps.isNotEmpty()) {
-                put("installed_apps", JSONArray(request.installedApps))
+                val appsArray = JSONArray()
+                request.installedApps.forEach { appsArray.put(it.toJson()) }
+                put("installed_apps", appsArray)
             }
         }
         .toString()
@@ -191,7 +193,9 @@ internal object MdmJsonCodec {
         .putOptional("wipe_started", proof.wipeStarted)
         .apply {
             if (proof.installedApps != null) {
-                put("installed_apps", JSONArray(proof.installedApps))
+                val appsArray = JSONArray()
+                proof.installedApps.forEach { appsArray.put(it.toJson()) }
+                put("installed_apps", appsArray)
             }
         }
 

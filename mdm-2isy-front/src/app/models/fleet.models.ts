@@ -32,6 +32,11 @@ export interface DeviceGroup {
   terminals_count?: number;
 }
 
+export interface InstalledApp {
+  name: string;
+  packageName: string;
+}
+
 export interface Terminal {
   id: number;
   public_id?: string;
@@ -64,7 +69,7 @@ export interface Terminal {
   lic?: any;
   profil_id?: number | null;
   profil?: any;
-  installed_apps?: string[] | null;
+  installed_apps?: (string | InstalledApp)[] | null;
 }
 
 export interface EnrollmentPayload {

@@ -615,6 +615,19 @@ export class Devices implements OnInit {
     this.afficherModalUninstall = true;
   }
 
+  getUninstallApps(terminal: Terminal | null): { name: string; packageName: string }[] {
+    if (!terminal || !terminal.installed_apps) {
+      return [];
+    }
+    const apps = terminal.installed_apps.map(app => {
+      if (typeof app === 'string') {
+        return { name: app, packageName: app };
+      }
+      return app;
+    });
+    return apps.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   fermerModalUninstall(): void {
     this.afficherModalUninstall = false;
     this.uninstallTerminal = null;
