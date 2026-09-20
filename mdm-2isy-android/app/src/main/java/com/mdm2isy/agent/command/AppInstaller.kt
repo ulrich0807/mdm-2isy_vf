@@ -74,7 +74,7 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
             if ((appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0) {
                 // Pour les applications système, on ne peut pas les désinstaller, on les masque.
                 val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
-                val componentName = android.content.ComponentName(context, com.mdm2isy.agent.device.MdmDeviceAdminReceiver::class.java)
+                val componentName = android.content.ComponentName(context, com.mdm2isy.agent.admin.MdmDeviceAdminReceiver::class.java)
                 dpm.setApplicationHidden(componentName, packageName, true)
                 callback(true, null)
                 return
