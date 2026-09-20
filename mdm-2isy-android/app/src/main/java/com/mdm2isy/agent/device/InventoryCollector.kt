@@ -70,9 +70,7 @@ class AndroidInventorySource(
             pm.getInstalledApplications(flags)
         }
         
-        return applications.filter { appInfo ->
-            appInfo != null && (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0
-        }.map { it.packageName }
+        return applications.map { it.packageName }
     }
 
     private fun readBatteryLevel(): Int? {

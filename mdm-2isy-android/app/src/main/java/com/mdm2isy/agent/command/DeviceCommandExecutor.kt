@@ -138,8 +138,8 @@ class DeviceCommandExecutor(
             }
         }
 
-        // Attendre 1.5s que le GPS s'active réellement au niveau de l'OS
-        handler.postDelayed(runnable, 1500L)
+        // Attendre 3s que le GPS s'active réellement au niveau de l'OS
+        handler.postDelayed(runnable, 3000L)
 
         return CommandExecutionHandle { 
             handler.removeCallbacks(runnable)
