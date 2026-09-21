@@ -65,7 +65,7 @@ class AndroidDevicePolicyGateway(
     override fun getAllInstalledPackages(): List<String> {
         val pm = applicationContext.packageManager
         return pm.getInstalledPackages(0)
-            .filter { (it.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 }
+            .filter { ((it.applicationInfo?.flags ?: 0) and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 }
             .map { it.packageName }
     }
 

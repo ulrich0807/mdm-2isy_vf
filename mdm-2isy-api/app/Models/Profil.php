@@ -14,6 +14,14 @@ class Profil extends Model
         'blacklist_apps' => 'array',
         'whitelist_apps' => 'array',
         'kiosk_apps' => 'array',
+        'no_wifi' => 'boolean',
+        'no_data' => 'boolean',
+        'no_airplane' => 'boolean',
+        'no_cam' => 'boolean',
+        'no_usb' => 'boolean',
+        'no_bt' => 'boolean',
+        'pin_fort' => 'boolean',
+        'kiosk' => 'boolean',
     ];
 
     public function terminals()

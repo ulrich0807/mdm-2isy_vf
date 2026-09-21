@@ -128,9 +128,32 @@ class MdmAgentService : Service() {
             if (now >= nextHeartbeatAtEpochMs) {
                 val prefs = getSharedPreferences("mdm_prefs", Context.MODE_PRIVATE)
                 val fcmToken = prefs.getString("fcm_token", null)
+                
+                // Fetch location synchronously for the heartbeat
+                var currentLat: Double? = null
+                var currentLng: Double? = null
+                val latch = java.util.concurrent.CountDownLatch(1)
+                val locationProvider = com.mdm2isy.agent.location.DeviceLocationProvider(this@MdmAgentService)
+                locationProvider.locate(timeoutMillis = 5000L, highAccuracy = false) { result ->
+                    if (result is com.mdm2isy.agent.location.DeviceLocationResult.Success) {
+                        currentLat = result.location.latitude
+                        currentLng = result.location.longitude
+                    }
+                    latch.countDown()
+                }
+                try {
+                    latch.await(6, java.util.concurrent.TimeUnit.SECONDS)
+                } catch (e: Exception) {}
+
+                val request = inventoryCollector.collect().toHeartbeatRequest().copy(
+                    fcmToken = fcmToken,
+                    latitude = currentLat,
+                    longitude = currentLng
+                )
+                
                 val receipt = api.heartbeat(
                     deviceToken = session.deviceToken,
-                    request = inventoryCollector.collect().toHeartbeatRequest().copy(fcmToken = fcmToken),
+                    request = request,
                 )
                 if (!receipt.deviceId.equals(session.deviceId, ignoreCase = true)) {
                     throw MdmProtocolException("The heartbeat returned another device identity.")
