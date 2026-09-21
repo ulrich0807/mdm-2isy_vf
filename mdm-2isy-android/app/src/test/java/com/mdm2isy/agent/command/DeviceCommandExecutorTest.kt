@@ -154,6 +154,7 @@ class DeviceCommandExecutorTest {
         override fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean = true
         override fun resetPassword(password: String, flags: Int): Boolean = true
         override fun setLocationEnabled(enabled: Boolean) = Unit
+        override fun setStatusBarDisabled(disabled: Boolean) = Unit
         override fun getAllInstalledPackages(): List<String> = emptyList()
     }
 

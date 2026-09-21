@@ -49,6 +49,7 @@ interface DevicePolicyGateway {
     fun resetPassword(password: String, flags: Int): Boolean
     
     fun setLocationEnabled(enabled: Boolean)
+    fun setStatusBarDisabled(disabled: Boolean)
     fun getAllInstalledPackages(): List<String>
 }
 
@@ -122,6 +123,10 @@ class AndroidDevicePolicyGateway(
                 if (enabled) "3" else "0" // 3 = LOCATION_MODE_HIGH_ACCURACY, 0 = OFF
             )
         }
+    }
+
+    override fun setStatusBarDisabled(disabled: Boolean) {
+        policyManager.setStatusBarDisabled(adminComponent, disabled)
     }
 }
 
@@ -229,6 +234,14 @@ class DeviceAdminController(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     gateway.clearUserRestriction(android.os.UserManager.DISALLOW_AIRPLANE_MODE)
                 }
+            }
+            
+            // To prevent Tecno and similar devices from allowing toggles via Quick Settings, 
+            // disable the status bar dropdown entirely when network connectivity is restricted.
+            if (policy.noWifi || policy.noData || policy.noAirplane || policy.kiosk) {
+                gateway.setStatusBarDisabled(true)
+            } else {
+                gateway.setStatusBarDisabled(false)
             }
             
             if (policy.pinFort) {
