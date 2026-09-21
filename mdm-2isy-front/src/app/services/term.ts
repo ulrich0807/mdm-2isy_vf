@@ -72,4 +72,9 @@ export class TermService {
       payload: payload
     });
   }
+
+  getLocationHistory(id: number, hours: number = 24): Observable<ApiResponse<{lat: number, lng: number, recorded_at: string}[]>> {
+    const params = new HttpParams().set('hours', hours.toString());
+    return this.http.get<ApiResponse<{lat: number, lng: number, recorded_at: string}[]>>(`${this.apiUrl}/${id}/history`, { params });
+  }
 }

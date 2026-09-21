@@ -131,6 +131,87 @@ export class Location implements OnInit, OnDestroy {
       </div>
     `;
 
+    const btnTrajet = document.createElement('button');
+    btnTrajet.className = 'btn btn-sm btn-outline-primary w-100 mt-3 fw-bold rounded-pill';
+    btnTrajet.innerHTML = '📍 Voir le trajet (24h)';
+    btnTrajet.onclick = () => {
+      this.afficherTrajet(terminal);
+    };
+    container.appendChild(btnTrajet);
+
     return container;
+  }
+
+  historyPolyline: any = null;
+  historyStartMarker: any = null;
+  currentHistoryTerminal: any = null;
+
+  afficherTrajet(terminal: any) {
+    this.fermerTrajet(); // Clean up previous
+    
+    this.currentHistoryTerminal = terminal;
+    this.map.closePopup();
+
+    this.termSvc.getLocationHistory(terminal.id, 24).subscribe({
+      next: (res: any) => {
+        if(res && res.success && res.data && res.data.length > 0) {
+          const points = res.data.map((h: any) => [parseFloat(h.lat), parseFloat(h.lng)]);
+          
+          // Add current position at the end if it exists
+          if (terminal.lat && terminal.lng) {
+            points.push([parseFloat(terminal.lat), parseFloat(terminal.lng)]);
+          }
+
+          if (points.length < 2) {
+            alert("Pas assez de données d'historique pour tracer un trajet.");
+            this.currentHistoryTerminal = null;
+            return;
+          }
+
+          // Dessiner le tracé
+          this.historyPolyline = L.polyline(points, {
+            color: '#0d6efd',
+            weight: 5,
+            opacity: 0.7,
+            dashArray: '10, 10',
+            lineJoin: 'round'
+          }).addTo(this.map);
+
+          // Marqueur de départ
+          const startPoint = points[0];
+          this.historyStartMarker = L.circleMarker(startPoint as any, {
+            radius: 8,
+            fillColor: "#ffc107",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 1
+          }).addTo(this.map).bindPopup("Point de départ (il y a 24h)");
+
+          // Ajuster la vue
+          this.map.fitBounds(this.historyPolyline.getBounds(), { padding: [50, 50] });
+        } else {
+          alert("Aucun historique disponible pour ce terminal sur les 24 dernières heures.");
+          this.currentHistoryTerminal = null;
+        }
+      },
+      error: () => {
+        alert("Erreur lors du chargement de l'historique.");
+        this.currentHistoryTerminal = null;
+      }
+    });
+  }
+
+  fermerTrajet() {
+    if (this.historyPolyline) {
+      this.map.removeLayer(this.historyPolyline);
+      this.historyPolyline = null;
+    }
+    if (this.historyStartMarker) {
+      this.map.removeLayer(this.historyStartMarker);
+      this.historyStartMarker = null;
+    }
+    this.currentHistoryTerminal = null;
+    this.chargerDonnees();
   }
 }

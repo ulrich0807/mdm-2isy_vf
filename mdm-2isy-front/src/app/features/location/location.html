@@ -6,7 +6,7 @@
       <p class="text-muted fw-bold m-0 mt-1">Supervision globale de la flotte des livreurs</p>
     </div>
     
-    <div class="bg-white rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3 border" style="pointer-events: auto;">
+    <div *ngIf="!currentHistoryTerminal" class="bg-white rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3 border" style="pointer-events: auto;">
       <div class="d-flex align-items-center gap-2">
         <span class="bg-success rounded-circle" style="width: 10px; height: 10px;"></span>
         <span class="small fw-bold text-dark">Actifs</span>
@@ -19,6 +19,11 @@
         <span class="bg-danger rounded-circle" style="width: 10px; height: 10px;"></span>
         <span class="small fw-bold text-dark">Alerte / Verrouillé</span>
       </div>
+    </div>
+    
+    <div *ngIf="currentHistoryTerminal" class="bg-primary text-white rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3" style="pointer-events: auto;">
+      <span class="fw-bold">Historique 24h : {{ currentHistoryTerminal.livreur }}</span>
+      <button class="btn btn-sm btn-light rounded-pill fw-bold" (click)="fermerTrajet()">Fermer</button>
     </div>
   </div>
 

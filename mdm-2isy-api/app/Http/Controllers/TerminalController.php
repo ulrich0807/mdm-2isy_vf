@@ -188,6 +188,23 @@ class TerminalController extends Controller
         ]);
     }
 
+    public function history(Request $request, int $id)
+    {
+        $terminal = $this->accessibleTerminal($request, $id);
+        
+        $hours = $request->query('hours', 24);
+        
+        $history = $terminal->locationHistories()
+            ->where('recorded_at', '>=', now()->subHours($hours))
+            ->orderBy('recorded_at', 'asc')
+            ->get(['lat', 'lng', 'recorded_at']);
+            
+        return response()->json([
+            'success' => true,
+            'data' => $history,
+        ]);
+    }
+
     private function accessibleTerminal(Request $request, int $id): Terminal
     {
         $organization = OrganizationAccess::resolve($request->user());

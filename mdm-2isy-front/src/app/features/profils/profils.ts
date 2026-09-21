@@ -14,7 +14,7 @@ export class Profils implements OnInit {
   load: boolean = true;
   showMod: boolean = false;
   
-  nvProf = { nom: '', kiosk: false, appKiosk: '', kioskApps: '', noCam: false, noUsb: false, noBt: false, pinFort: false, blacklistApps: '' };
+  nvProf = { nom: '', kiosk: false, appKiosk: '', kioskApps: '', noCam: false, noUsb: false, noBt: false, noWifi: false, noData: false, noAirplane: false, pinFort: false, blacklistApps: '', whitelistApps: '' };
 
   constructor(private profSvc: ProfService, private cdRef: ChangeDetectorRef) {}
 
@@ -36,8 +36,12 @@ export class Profils implements OnInit {
           noCam: p.no_cam == 1,
           noUsb: p.no_usb == 1,
           noBt: p.no_bt == 1,
+          noWifi: p.no_wifi == 1,
+          noData: p.no_data == 1,
+          noAirplane: p.no_airplane == 1,
           pinFort: p.pin_fort == 1,
-          blacklistApps: Array.isArray(p.blacklist_apps) ? p.blacklist_apps.join(', ') : ''
+          blacklistApps: Array.isArray(p.blacklist_apps) ? p.blacklist_apps.join(', ') : '',
+          whitelistApps: Array.isArray(p.whitelist_apps) ? p.whitelist_apps.join(', ') : ''
         }));
         this.load = false;
         this.cdRef.detectChanges();
@@ -49,11 +53,13 @@ export class Profils implements OnInit {
     });
   }
 
-  ouvMod() { this.showMod = true; }
+  ouvMod() {
+    this.nvProf = { nom: '', kiosk: false, appKiosk: '', kioskApps: '', noCam: false, noUsb: false, noBt: false, noWifi: false, noData: false, noAirplane: false, pinFort: false, blacklistApps: '', whitelistApps: '' };
+    this.showMod = true;
+  }
   
   fermMod() { 
     this.showMod = false;
-    this.nvProf = { nom: '', kiosk: false, appKiosk: '', kioskApps: '', noCam: false, noUsb: false, noBt: false, pinFort: false, blacklistApps: '' };
   }
 
   savProf() {
@@ -69,8 +75,12 @@ export class Profils implements OnInit {
       no_cam: this.nvProf.noCam,
       no_usb: this.nvProf.noUsb,
       no_bt: this.nvProf.noBt,
+      no_wifi: this.nvProf.noWifi,
+      no_data: this.nvProf.noData,
+      no_airplane: this.nvProf.noAirplane,
       pin_fort: this.nvProf.pinFort,
-      blacklist_apps: this.nvProf.blacklistApps ? this.nvProf.blacklistApps.split(',').map(s => s.trim()).filter(s => s) : []
+      blacklist_apps: this.nvProf.blacklistApps ? this.nvProf.blacklistApps.split(',').map(s => s.trim()).filter(s => s) : [],
+      whitelist_apps: this.nvProf.whitelistApps ? this.nvProf.whitelistApps.split(',').map(s => s.trim()).filter(s => s) : []
     };
 
     this.profSvc.add(payload).subscribe({

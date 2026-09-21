@@ -51,6 +51,18 @@
               <span class="badge" [ngClass]="p.noBt ? 'bg-danger' : 'bg-success'">{{ p.noBt ? 'BLOQUÉ' : 'AUTORISÉE' }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+              <span>Configuration Wi-Fi</span>
+              <span class="badge" [ngClass]="p.noWifi ? 'bg-danger' : 'bg-success'">{{ p.noWifi ? 'BLOQUÉE' : 'AUTORISÉE' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Configuration Données</span>
+              <span class="badge" [ngClass]="p.noData ? 'bg-danger' : 'bg-success'">{{ p.noData ? 'BLOQUÉE' : 'AUTORISÉE' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span>Mode Avion</span>
+              <span class="badge" [ngClass]="p.noAirplane ? 'bg-danger' : 'bg-success'">{{ p.noAirplane ? 'BLOQUÉ' : 'AUTORISÉ' }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
               <span>Code PIN Fort Requis</span>
               <span class="badge" [ngClass]="p.pinFort ? 'bg-primary' : 'bg-secondary'">{{ p.pinFort ? 'OUI' : 'NON' }}</span>
             </div>
@@ -59,6 +71,13 @@
               <div class="fw-bold text-dark mb-1">🚫 Applications Masquées (Liste Noire)</div>
               <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;">
                 {{ p.blacklistApps }}
+              </div>
+            </div>
+            
+            <div *ngIf="p.whitelistApps" class="mt-2 pt-2 border-top">
+              <div class="fw-bold text-success mb-1">✅ Applications Autorisées (Liste Blanche)</div>
+              <div class="text-muted" style="font-size: 0.75rem; word-break: break-all;">
+                {{ p.whitelistApps }}
               </div>
             </div>
           </div>
@@ -113,6 +132,25 @@
           <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noBt" id="swBt">
           <label class="form-check-label fw-bold small text-dark" for="swBt">Bloquer le Bluetooth</label>
         </div>
+        
+        <hr>
+        <h6 class="fw-bold small text-primary mb-3">Réseau & Connectivité</h6>
+        
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noWifi" id="swWifi">
+          <label class="form-check-label fw-bold small text-dark" for="swWifi">Bloquer la configuration Wi-Fi</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noData" id="swData">
+          <label class="form-check-label fw-bold small text-dark" for="swData">Bloquer les données mobiles</label>
+        </div>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.noAirplane" id="swAirplane">
+          <label class="form-check-label fw-bold small text-dark" for="swAirplane">Interdire le mode Avion</label>
+        </div>
+        
+        <hr>
+        
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" [(ngModel)]="nvProf.pinFort" id="swPin">
           <label class="form-check-label fw-bold small text-dark" for="swPin">Forcer un Code PIN Fort</label>
@@ -124,6 +162,12 @@
           <label class="form-label small fw-bold text-dark">Liste noire d'applications</label>
           <input type="text" [(ngModel)]="nvProf.blacklistApps" class="form-control form-control-sm" placeholder="Ex: com.android.camera,com.facebook.katana">
           <div class="form-text small">Masque ces applications sur le terminal (séparées par une virgule).</div>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-success">Liste blanche d'applications</label>
+          <input type="text" [(ngModel)]="nvProf.whitelistApps" class="form-control form-control-sm border-success" placeholder="Ex: com.whatsapp,com.waze">
+          <div class="form-text small">Masque TOUTES les autres applications téléchargeables, SAUF celles-ci. Laissez vide pour désactiver.</div>
         </div>
       </div>
       

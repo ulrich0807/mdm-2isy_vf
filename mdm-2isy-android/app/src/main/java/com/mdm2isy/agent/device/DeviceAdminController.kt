@@ -49,10 +49,11 @@ interface DevicePolicyGateway {
     fun resetPassword(password: String, flags: Int): Boolean
     
     fun setLocationEnabled(enabled: Boolean)
+    fun getAllInstalledPackages(): List<String>
 }
 
 class AndroidDevicePolicyGateway(
-    context: Context,
+    private val context: Context,
     private val adminComponent: ComponentName = MdmDeviceAdminReceiver.componentName(context),
 ) : DevicePolicyGateway {
     private val applicationContext = context.applicationContext
@@ -60,6 +61,13 @@ class AndroidDevicePolicyGateway(
         requireNotNull(applicationContext.getSystemService(DevicePolicyManager::class.java)) {
             "DevicePolicyManager is unavailable on this device."
         }
+
+    override fun getAllInstalledPackages(): List<String> {
+        val pm = applicationContext.packageManager
+        return pm.getInstalledPackages(0)
+            .filter { (it.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0 }
+            .map { it.packageName }
+    }
 
     override fun isAdminActive(): Boolean = policyManager.isAdminActive(adminComponent)
 
@@ -201,6 +209,28 @@ class DeviceAdminController(
                 gateway.clearUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
             }
             
+            if (policy.noWifi) {
+                gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+            } else {
+                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+            }
+
+            if (policy.noData) {
+                gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+            } else {
+                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+            }
+
+            if (policy.noAirplane) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_AIRPLANE_MODE)
+                }
+            } else {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_AIRPLANE_MODE)
+                }
+            }
+            
             if (policy.pinFort) {
                 // PIN setup requires more interaction, but we can set quality
                 // gateway.policyManager.setPasswordQuality(adminComponent, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
@@ -219,9 +249,24 @@ class DeviceAdminController(
                 gateway.setLockTaskPackages(emptyArray())
             }
             
-            // Hide blacklisted apps
+            // Process blacklisted apps (these are explicitly hidden regardless of being system or user apps)
             for (pkg in policy.blacklistApps) {
                 gateway.setApplicationHidden(pkg, true)
+            }
+            
+            // Process whitelist (hides any third-party app not in the whitelist)
+            if (policy.whitelistApps.isNotEmpty()) {
+                val allUserApps = gateway.getAllInstalledPackages()
+                for (pkg in allUserApps) {
+                    // Don't hide our own agent
+                    if (pkg == "com.mdm2isy.agent") continue
+                    
+                    if (!policy.whitelistApps.contains(pkg)) {
+                        gateway.setApplicationHidden(pkg, true)
+                    } else {
+                        gateway.setApplicationHidden(pkg, false)
+                    }
+                }
             }
         }
     }

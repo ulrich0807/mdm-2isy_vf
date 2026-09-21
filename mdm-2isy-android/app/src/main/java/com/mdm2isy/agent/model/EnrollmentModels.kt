@@ -114,8 +114,12 @@ data class SecurityPolicy(
     val noCam: Boolean = false,
     val noUsb: Boolean = false,
     val noBt: Boolean = false,
+    val noWifi: Boolean = false,
+    val noData: Boolean = false,
+    val noAirplane: Boolean = false,
     val pinFort: Boolean = false,
     val blacklistApps: List<String> = emptyList(),
+    val whitelistApps: List<String> = emptyList(),
 )
 
 data class HeartbeatReceipt(

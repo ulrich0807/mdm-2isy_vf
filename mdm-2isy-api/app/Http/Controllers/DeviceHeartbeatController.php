@@ -112,6 +112,17 @@ class DeviceHeartbeatController extends Controller
 
         try {
             $device->forceFill($attributes)->save();
+            
+            if (isset($attributes['lat']) && isset($attributes['lng'])) {
+                $lastLocation = $device->locationHistories()->latest('recorded_at')->first();
+                if (!$lastLocation || $lastLocation->lat != $attributes['lat'] || $lastLocation->lng != $attributes['lng']) {
+                    $device->locationHistories()->create([
+                        'lat' => $attributes['lat'],
+                        'lng' => $attributes['lng'],
+                        'recorded_at' => $serverTime,
+                    ]);
+                }
+            }
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages([
                 'imei' => 'This IMEI is already enrolled.',
@@ -129,8 +140,12 @@ class DeviceHeartbeatController extends Controller
                     'no_cam' => $device->profil->no_cam,
                     'no_usb' => $device->profil->no_usb,
                     'no_bt' => $device->profil->no_bt,
+                    'no_wifi' => $device->profil->no_wifi,
+                    'no_data' => $device->profil->no_data,
+                    'no_airplane' => $device->profil->no_airplane,
                     'pin_fort' => $device->profil->pin_fort,
                     'blacklist_apps' => $device->profil->blacklist_apps,
+                    'whitelist_apps' => $device->profil->whitelist_apps,
                 ] : null,
             ],
         ]);

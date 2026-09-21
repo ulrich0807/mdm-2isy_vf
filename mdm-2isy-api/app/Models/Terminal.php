@@ -79,6 +79,11 @@ class Terminal extends Model
         return $this->hasMany(DeviceCommand::class);
     }
 
+    public function locationHistories(): HasMany
+    {
+        return $this->hasMany(LocationHistory::class);
+    }
+
     public function lic(): HasOne
     {
         return $this->hasOne(Lic::class, 'term_id');
