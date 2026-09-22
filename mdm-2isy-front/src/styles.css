@@ -163,7 +163,8 @@ button, input, select, textarea { font: inherit; }
    ========================================= */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  /* `none` évite de conserver un bloc transformé qui piège les modales fixes. */
+  to { opacity: 1; transform: none; }
 }
 
 .animate-fade-up {

@@ -66,6 +66,8 @@ export interface Terminal {
   enrollment_status?: string | null;
   agent_version?: string | null;
   last_seen_at?: string | null;
+  lat?: number | string | null;
+  lng?: number | string | null;
   lic?: any;
   profil_id?: number | null;
   profil?: any;

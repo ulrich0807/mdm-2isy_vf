@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TermService } from '../../services/term';
 import { LogService } from '../../services/log';
@@ -12,7 +12,7 @@ import * as L from 'leaflet';
   imports: [CommonModule],
   templateUrl: './dashboard.html'
 })
-export class Dashboard implements OnInit {
+export class Dashboard implements OnInit, OnDestroy {
   
   @ViewChild('lineChart') lineChart!: ElementRef;
   @ViewChild('pieChart') pieChart!: ElementRef;
@@ -35,6 +35,10 @@ export class Dashboard implements OnInit {
   chartLine: any;
   chartPie: any;
   map: any;
+  private mapBounds: L.LatLngExpression[] = [];
+  mapRefreshing = false;
+  mapLastUpdated: Date | null = null;
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   // Données dynamiques du graphe
   lineLabels: string[] = [];
@@ -51,9 +55,18 @@ export class Dashboard implements OnInit {
     this.chargerStatistiques();
     this.chargerLogs();
     this.chargerLicences();
+    this.refreshTimer = setInterval(() => this.chargerStatistiques(true), 15_000);
   }
 
-  chargerStatistiques() {
+  ngOnDestroy(): void {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this.chartLine) this.chartLine.destroy();
+    if (this.chartPie) this.chartPie.destroy();
+    if (this.map) this.map.remove();
+  }
+
+  chargerStatistiques(silent = false) {
+    this.mapRefreshing = true;
     this.termSvc.getAll().subscribe({
       next: (res: any) => {
         if(res && res.success) {
@@ -70,11 +83,16 @@ export class Dashboard implements OnInit {
           this.cdRef.detectChanges(); 
           
           setTimeout(() => {
-            this.initCharts();
+            if (!silent) this.initCharts();
             this.initMap(terminaux);
+            this.mapLastUpdated = new Date();
+            this.mapRefreshing = false;
           }, 100);
+        } else {
+          this.mapRefreshing = false;
         }
-      }
+      },
+      error: () => { this.mapRefreshing = false; },
     });
   }
 
@@ -124,17 +142,32 @@ export class Dashboard implements OnInit {
       this.map.remove();
     }
 
-    // Centrage sur Abidjan 
-    this.map = L.map('mapLive').setView([5.3599, -4.0083], 12);
+    this.map = L.map('mapLive', { zoomControl: false, attributionControl: true })
+      .setView([5.3599, -4.0083], 12);
+    L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(this.map);
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; contributeurs OpenStreetMap',
       maxZoom: 19
     }).addTo(this.map);
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 19,
+    });
+    L.control.layers({ 'Plan clair': streetLayer, 'Satellite': satelliteLayer }, undefined, {
+      position: 'bottomright',
+      collapsed: true,
+    }).addTo(this.map);
+
+    this.mapBounds = [];
 
     // Ajout des points GPS sur la carte
     terminaux.forEach(t => {
-      if (t.lat !== null && t.lat !== undefined && t.lng !== null && t.lng !== undefined) {
+      const latitude = Number(t.lat);
+      const longitude = Number(t.lng);
+      if (t.lat != null && t.lng != null && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        this.mapBounds.push([latitude, longitude]);
         let colorClass = 'bg-warning text-dark border-warning';
         let glowClass = '';
         
@@ -148,17 +181,33 @@ export class Dashboard implements OnInit {
 
         const customIcon = L.divIcon({
           className: 'custom-div-icon',
-          html: `<div class="marker-pin ${colorClass} ${glowClass} d-flex justify-content-center align-items-center rounded-circle" style="width: 24px; height: 24px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);"></div>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-          popupAnchor: [0, -12]
+          html: `<div class="marker-pin ${colorClass} ${glowClass} d-flex justify-content-center align-items-center rounded-circle" style="width: 38px; height: 38px; border: 3px solid white; box-shadow: 0 6px 16px rgba(15,23,42,.28);"><span style="font-size:16px">🚚</span></div>`,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
+          popupAnchor: [0, -20]
         });
 
-        L.marker([t.lat, t.lng], { icon: customIcon })
+        L.marker([latitude, longitude], { icon: customIcon })
           .addTo(this.map)
+          .bindTooltip(String(t.livreur || t.modele || 'Terminal'), { direction: 'top', offset: [0, -18] })
           .bindPopup(this.createDevicePopup(t));
       }
     });
+
+    this.fitDashboardFleet();
+    setTimeout(() => this.map?.invalidateSize(), 0);
+  }
+
+  fitDashboardFleet(): void {
+    if (!this.map || this.mapBounds.length === 0) {
+      this.map?.setView([5.3599, -4.0083], 12);
+      return;
+    }
+    if (this.mapBounds.length === 1) {
+      this.map.setView(this.mapBounds[0], 14);
+      return;
+    }
+    this.map.fitBounds(this.mapBounds, { padding: [48, 48], maxZoom: 15 });
   }
 
   private createDevicePopup(terminal: any): HTMLElement {
