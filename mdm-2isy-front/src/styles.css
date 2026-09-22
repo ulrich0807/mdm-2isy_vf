@@ -355,6 +355,7 @@ button, input, select, textarea { font: inherit; }
 .fleet-stat-card { transition: transform .2s ease, box-shadow .2s ease; }
 .fleet-stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(15,23,42,.09) !important; }
 .fleet-stat-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 14px; font-weight: 900; }
+.users-search { width: min(100%, 430px); }
 
 @media (max-width: 1199.98px) {
   .app-content { padding: 22px; }
