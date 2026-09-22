@@ -12,6 +12,7 @@ import com.mdm2isy.agent.location.LocationRequestStart
 import com.mdm2isy.agent.location.LocationTimeoutScheduler
 import com.mdm2isy.agent.model.CommandPayload
 import com.mdm2isy.agent.model.DeviceCommand
+import com.mdm2isy.agent.model.SecurityPolicy
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -130,6 +131,37 @@ class DeviceCommandExecutorTest {
         assertTrue(result is CommandExecutionResult.Success)
     }
 
+    @Test
+    fun `blacklisted package is hidden even when it is absent from inventory`() {
+        val gateway = FakePolicyGateway(adminActive = true, deviceOwner = true)
+
+        val result = DeviceAdminController(gateway).applyPolicy(
+            SecurityPolicy(blacklistApps = listOf("com.facebook.katana")),
+        )
+
+        assertTrue(result is DeviceAdminOperationResult.Completed)
+        assertEquals(true, gateway.applicationVisibility["com.facebook.katana"])
+    }
+
+    @Test
+    fun `OEM status bar failure does not cancel blacklist enforcement`() {
+        val gateway = FakePolicyGateway(
+            adminActive = true,
+            deviceOwner = true,
+            failStatusBarUpdate = true,
+        )
+
+        val result = DeviceAdminController(gateway).applyPolicy(
+            SecurityPolicy(noData = true, blacklistApps = listOf("com.facebook.katana")),
+        )
+
+        assertTrue(result is DeviceAdminOperationResult.Completed)
+        assertEquals(true, gateway.applicationVisibility["com.facebook.katana"])
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS))
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_DATA_ROAMING))
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_CONFIG_TETHERING))
+    }
+
     private fun unusedLocationProvider(): DeviceLocationProvider = DeviceLocationProvider(
         source = object : CurrentLocationSource {
             override fun request(
@@ -157,11 +189,14 @@ class DeviceCommandExecutorTest {
     private class FakePolicyGateway(
         private val adminActive: Boolean = false,
         private val deviceOwner: Boolean = false,
+        private val failStatusBarUpdate: Boolean = false,
     ) : DevicePolicyGateway {
         var wipeCalls: Int = 0
             private set
         var lastWipeFlags: Int? = null
             private set
+        val addedRestrictions = mutableListOf<String>()
+        val applicationVisibility = mutableMapOf<String, Boolean>()
 
         override fun isAdminActive(): Boolean = adminActive
 
@@ -176,14 +211,21 @@ class DeviceCommandExecutorTest {
 
         override fun setLockTaskPackages(packages: Array<String>) = Unit
         override fun setCameraDisabled(disabled: Boolean) = Unit
-        override fun addUserRestriction(restriction: String) = Unit
+        override fun addUserRestriction(restriction: String) {
+            addedRestrictions += restriction
+        }
         override fun clearUserRestriction(restriction: String) = Unit
-        override fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean = true
+        override fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean {
+            applicationVisibility[packageName] = hidden
+            return true
+        }
         override fun resetPassword(password: String, flags: Int): Boolean = true
         override fun setPasswordQuality(quality: Int) = Unit
         override fun setPasswordMinimumLength(length: Int) = Unit
         override fun setLocationEnabled(enabled: Boolean) = Unit
-        override fun setStatusBarDisabled(disabled: Boolean) = Unit
+        override fun setStatusBarDisabled(disabled: Boolean) {
+            if (failStatusBarUpdate) error("OEM rejected status bar policy")
+        }
         override fun getAllInstalledPackages(): List<String> = emptyList()
     }
 

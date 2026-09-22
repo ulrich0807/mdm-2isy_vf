@@ -210,30 +210,73 @@ class DeviceAdminController(
         }
         
         return invokePolicy("L'application de la politique a été refusée.") {
-            gateway.setCameraDisabled(policy.noCam)
+            val blacklist = policy.blacklistApps
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .toSet()
+            val whitelist = policy.whitelistApps
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .toSet()
+
+            // The explicit deny-list is the highest priority. Apply it before every
+            // other OEM-dependent policy so an unrelated rejection cannot skip it.
+            blacklist
+                .filterNot(::isAgentPackage)
+                .forEach { pkg -> safelyApplyApplicationVisibility(pkg, hidden = true) }
+
+            safelyApplyPolicy { gateway.setCameraDisabled(policy.noCam) }
             
             if (policy.noUsb) {
-                gateway.addUserRestriction(android.os.UserManager.DISALLOW_USB_FILE_TRANSFER)
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_USB_FILE_TRANSFER)
+                }
             } else {
-                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_USB_FILE_TRANSFER)
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_USB_FILE_TRANSFER)
+                }
             }
             
             if (policy.noBt) {
-                gateway.addUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+                }
             } else {
-                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+                }
             }
             
             if (policy.noWifi) {
-                gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+                }
             } else {
-                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+                }
             }
 
             if (policy.noData) {
-                gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+                }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_DATA_ROAMING)
+                }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_TETHERING)
+                }
             } else {
-                gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_DATA_ROAMING)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_TETHERING)
+                }
             }
 
             if (policy.noAirplane) {
@@ -244,14 +287,6 @@ class DeviceAdminController(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     gateway.clearUserRestriction(android.os.UserManager.DISALLOW_AIRPLANE_MODE)
                 }
-            }
-            
-            // To prevent Tecno and similar devices from allowing toggles via Quick Settings, 
-            // disable the status bar dropdown entirely when network connectivity is restricted.
-            if (policy.noWifi || policy.noData || policy.noAirplane || policy.kiosk) {
-                gateway.setStatusBarDisabled(true)
-            } else {
-                gateway.setStatusBarDisabled(false)
             }
             
             gateway.setPasswordQuality(
@@ -273,15 +308,40 @@ class DeviceAdminController(
                 gateway.setLockTaskPackages(emptyArray())
             }
             
-            // Recalculate every application state so removing an old blacklist or
-            // disabling a whitelist restores applications that were hidden before.
-            for (pkg in gateway.getAllInstalledPackages()) {
-                if (pkg == "com.mdm2isy.agent") continue
-                val hidden = policy.blacklistApps.contains(pkg) ||
-                    (policy.whitelistApps.isNotEmpty() && !policy.whitelistApps.contains(pkg))
-                gateway.setApplicationHidden(pkg, hidden)
+            // Recalculate every known application state so removing an old blacklist
+            // or disabling a whitelist restores applications that were hidden before.
+            runCatching { gateway.getAllInstalledPackages() }
+                .getOrDefault(emptyList())
+                .asSequence()
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .filterNot(::isAgentPackage)
+                .filterNot(blacklist::contains)
+                .forEach { pkg ->
+                    val hidden = whitelist.isNotEmpty() && !whitelist.contains(pkg)
+                    safelyApplyApplicationVisibility(pkg, hidden)
+                }
+
+            // Tecno and similar devices may keep network toggles in Quick Settings.
+            // This call is intentionally last and isolated: an OEM rejection must not
+            // cancel camera, network, password, kiosk or application restrictions.
+            runCatching {
+                gateway.setStatusBarDisabled(
+                    policy.noWifi || policy.noData || policy.noAirplane || policy.kiosk,
+                )
             }
         }
+    }
+
+    private fun isAgentPackage(packageName: String): Boolean =
+        packageName == "com.mdm2isy.agent"
+
+    private fun safelyApplyApplicationVisibility(packageName: String, hidden: Boolean) {
+        runCatching { gateway.setApplicationHidden(packageName, hidden) }
+    }
+
+    private inline fun safelyApplyPolicy(operation: () -> Unit) {
+        runCatching(operation)
     }
 
     private fun requireActiveAdmin(
