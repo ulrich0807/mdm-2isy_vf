@@ -7,6 +7,7 @@ import { OrganizationService } from '../../services/organization';
 import { Organization } from '../../models/fleet.models';
 import { TermService } from '../../services/term';
 import { Terminal } from '../../models/fleet.models';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-apps',
@@ -25,6 +26,8 @@ export class Apps implements OnInit {
   deployApp: any | null = null;
   deployTerminalIds: number[] = [];
   deploySubmitting = false;
+  deployNotice = '';
+  deployError = '';
   editingApp: any | null = null;
   
   nvApp = { nom: '', pkg: '', type: 'blanche', ver: '' };
@@ -58,6 +61,8 @@ export class Apps implements OnInit {
     if (!app.chemin_apk) return alert("Ajoutez d’abord un fichier APK à cette application.");
     this.deployApp = app;
     this.deployTerminalIds = [];
+    this.deployNotice = '';
+    this.deployError = '';
   }
 
   fermerDeploiement() {
@@ -75,15 +80,22 @@ export class Apps implements OnInit {
   pousserApp() {
     if (!this.deployApp || this.deployTerminalIds.length === 0) return;
     this.deploySubmitting = true;
-    this.appSvc.deploy(this.deployApp.id, this.deployTerminalIds).subscribe({
-      next: res => {
-        alert(`✅ ${res.message || "Commande d’installation mise en file."}`);
+    this.deployError = '';
+    this.appSvc.deploy(this.deployApp.id, this.deployTerminalIds).pipe(
+      finalize(() => {
         this.deploySubmitting = false;
-        this.fermerDeploiement();
+        this.cdRef.detectChanges();
+      }),
+    ).subscribe({
+      next: res => {
+        this.deployNotice = res.message || "Commande d’installation mise en file.";
+        this.deployApp = null;
+        this.deployTerminalIds = [];
       },
       error: err => {
-        alert(err?.error?.message || err?.error?.errors?.terminal?.[0] || "Impossible d’envoyer la commande d’installation.");
-        this.deploySubmitting = false;
+        this.deployError = err?.error?.message
+          || err?.error?.errors?.terminal?.[0]
+          || "Impossible d’envoyer la commande d’installation.";
       },
     });
   }
