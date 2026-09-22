@@ -20,6 +20,7 @@ export class AlertsComponent implements OnInit {
   isSuperAdmin = false;
   organizations: Organization[] = [];
   selectedOrganizationId: number | null = null;
+  errorMessage = '';
 
   constructor(private alertSvc: AlertService, private auth: Auth, private organizationSvc: OrganizationService) {}
 
@@ -27,13 +28,19 @@ export class AlertsComponent implements OnInit {
     this.isSuperAdmin = this.auth.role === 'super_admin';
     this.selectedOrganizationId = this.auth.user?.organization_id ?? null;
     if (this.isSuperAdmin) {
-      this.organizationSvc.getAll().subscribe(res => this.organizations = res.data);
+      this.organizationSvc.getAll().subscribe({
+        next: (res) => this.organizations = res.data,
+        error: () => {
+          this.errorMessage = 'Les organisations n’ont pas pu être chargées. Les alertes restent accessibles.';
+        },
+      });
     }
     this.loadAlerts();
   }
 
   loadAlerts(): void {
     this.loading = true;
+    this.errorMessage = '';
     const statusParam = this.filterStatus === 'all' ? undefined : this.filterStatus;
     this.alertSvc.getAlerts(statusParam, this.selectedOrganizationId).subscribe({
       next: (res) => {
@@ -42,10 +49,22 @@ export class AlertsComponent implements OnInit {
         }
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
+        this.alerts = [];
+        this.errorMessage = error?.status === 401
+          ? 'Votre session a expiré. Reconnectez-vous pour consulter les alertes.'
+          : 'Impossible de charger les alertes. Vérifiez la connexion à l’API puis réessayez.';
       }
     });
+  }
+
+  get activeCount(): number {
+    return this.alerts.filter((alert) => !alert.resolved_at).length;
+  }
+
+  get criticalCount(): number {
+    return this.alerts.filter((alert) => !alert.resolved_at && alert.severity === 'critical').length;
   }
 
   setFilter(status: 'all' | 'active' | 'resolved'): void {

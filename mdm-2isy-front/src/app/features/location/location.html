@@ -6,18 +6,18 @@
       <p class="text-muted fw-bold m-0 mt-1">Supervision globale de la flotte des livreurs</p>
     </div>
     
-    <div *ngIf="!currentHistoryTerminal" class="bg-white rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3 border" style="pointer-events: auto;">
+    <div *ngIf="!currentHistoryTerminal" class="map-legend bg-white rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3 border" style="pointer-events: auto;">
       <div class="d-flex align-items-center gap-2">
         <span class="bg-success rounded-circle" style="width: 10px; height: 10px;"></span>
-        <span class="small fw-bold text-dark">Actifs</span>
+        <span class="small fw-bold text-dark">{{ activeCount }} actifs</span>
       </div>
       <div class="d-flex align-items-center gap-2">
         <span class="bg-warning rounded-circle" style="width: 10px; height: 10px;"></span>
-        <span class="small fw-bold text-dark">Hors Ligne</span>
+        <span class="small fw-bold text-dark">{{ offlineCount }} hors ligne</span>
       </div>
       <div class="d-flex align-items-center gap-2">
         <span class="bg-danger rounded-circle" style="width: 10px; height: 10px;"></span>
-        <span class="small fw-bold text-dark">Alerte / Verrouillé</span>
+        <span class="small fw-bold text-dark">{{ alertCount }} en alerte</span>
       </div>
     </div>
     
@@ -28,33 +28,29 @@
   </div>
 
   <!-- Conteneur Carte Plein Ecran -->
-  <div class="flex-grow-1 position-relative rounded-4 overflow-hidden shadow-sm border m-3 mt-0" style="min-height: 500px;">
+  <div class="map-shell flex-grow-1 position-relative rounded-4 overflow-hidden shadow-sm border m-3 mt-0" style="min-height: 500px;">
     <div id="fullscreenMap" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1;"></div>
-    
-    <!-- Bouton flottant refresh -->
-    <button class="btn btn-white position-absolute top-0 end-0 m-3 rounded-circle shadow-sm d-flex align-items-center justify-content-center border" 
-            style="width: 45px; height: 45px; z-index: 1000;" 
-            (click)="chargerDonnees()" title="Rafraîchir maintenant">
-      <span class="fs-5">🔄</span>
-    </button>
+
+    <div *ngIf="errorMessage" class="map-error alert alert-danger position-absolute start-50 translate-middle-x m-3 shadow" style="z-index: 1000;">
+      {{ errorMessage }}
+    </div>
+
+    <div class="map-actions position-absolute top-0 end-0 m-3 d-flex gap-2" style="z-index: 1000;">
+      <button class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center border"
+              (click)="fitFleet()" title="Afficher toute la flotte" aria-label="Afficher toute la flotte">
+        <span class="fs-5">◎</span>
+      </button>
+      <button class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center border"
+              [disabled]="loading" (click)="chargerDonnees()" title="Rafraîchir maintenant" aria-label="Rafraîchir la carte">
+        <span class="fs-5" [class.map-refreshing]="loading">↻</span>
+      </button>
+    </div>
+
+    <div class="map-sync position-absolute bottom-0 start-0 m-3 bg-white border rounded-3 shadow-sm px-3 py-2" style="z-index: 1000;">
+      <div class="small fw-bold text-dark">{{ terminaux.length }} terminaux supervisés</div>
+      <div class="text-muted" style="font-size: .72rem;">
+        {{ lastUpdated ? ('Mis à jour à ' + (lastUpdated | date:'HH:mm:ss')) : 'Synchronisation en cours…' }}
+      </div>
+    </div>
   </div>
 </div>
-
-<style>
-/* Animation customisée pour le ping vert */
-@keyframes glow-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
-  70% { box-shadow: 0 0 0 15px rgba(25, 135, 84, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
-}
-.pulse-animation {
-  animation: glow-pulse 2s infinite;
-}
-.marker-pin {
-  transition: transform 0.3s ease;
-}
-.marker-pin:hover {
-  transform: scale(1.15);
-  z-index: 1000;
-}
-</style>

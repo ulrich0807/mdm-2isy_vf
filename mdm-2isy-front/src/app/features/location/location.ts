@@ -11,8 +11,13 @@ import * as L from 'leaflet';
 })
 export class Location implements OnInit, OnDestroy {
   map: any;
+  markerLayer: any;
   terminaux: any[] = [];
   pollInterval: any;
+  loading = false;
+  errorMessage = '';
+  lastUpdated: Date | null = null;
+  private hasFittedFleet = false;
 
   constructor(private termSvc: TermService) {}
 
@@ -33,35 +38,50 @@ export class Location implements OnInit, OnDestroy {
   }
 
   chargerDonnees() {
+    this.loading = true;
+    this.errorMessage = '';
     this.termSvc.getAll().subscribe({
       next: (res: any) => {
         if(res && res.success) {
           this.terminaux = res.data;
           this.rafraichirMarqueurs();
+          this.lastUpdated = new Date();
         }
-      }
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage = 'La position des terminaux ne peut pas être actualisée.';
+      },
     });
   }
 
   initMap() {
     // Vue sur Abidjan
-    this.map = L.map('fullscreenMap', { zoomControl: false }).setView([5.3599, -4.0083], 12);
+    this.map = L.map('fullscreenMap', { zoomControl: false, attributionControl: true }).setView([5.3599, -4.0083], 12);
     L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(this.map);
 
     // Style de carte Premium moderne (CartoDB Voyager)
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
+    const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
       maxZoom: 19
     }).addTo(this.map);
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 19,
+    });
+    L.control.layers({ 'Plan clair': streetLayer, 'Satellite': satelliteLayer }, undefined, {
+      position: 'bottomright',
+      collapsed: true,
+    }).addTo(this.map);
+    this.markerLayer = L.layerGroup().addTo(this.map);
+    setTimeout(() => this.map.invalidateSize(), 0);
   }
 
   rafraichirMarqueurs() {
-    // Supprimer les anciens marqueurs de terminaux
-    this.map.eachLayer((layer: any) => {
-      if (layer instanceof L.Marker && layer.options.title !== 'ignorer') {
-        this.map.removeLayer(layer);
-      }
-    });
+    this.markerLayer.clearLayers();
+    const visibleCoordinates: L.LatLngExpression[] = [];
 
     this.terminaux.forEach(t => {
       if (t.lat !== null && t.lat !== undefined && t.lng !== null && t.lng !== undefined) {
@@ -81,21 +101,64 @@ export class Location implements OnInit, OnDestroy {
         }
 
         // Création d'une icône HTML (DivIcon) pour avoir un style ultra moderne
+        visibleCoordinates.push([Number(t.lat), Number(t.lng)]);
         const customIcon = L.divIcon({
           className: 'custom-div-icon',
-          html: `<div class="marker-pin ${colorClass} ${glowClass} d-flex justify-content-center align-items-center rounded-circle" style="width: 32px; height: 32px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
-                   <span style="font-size: 14px;">🚚</span>
+          html: `<div class="marker-pin ${colorClass} ${glowClass} d-flex justify-content-center align-items-center rounded-circle" style="width: 38px; height: 38px; border: 3px solid white; box-shadow: 0 6px 16px rgba(15,23,42,.28);">
+                   <span style="font-size: 16px;">🚚</span>
                  </div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-          popupAnchor: [0, -16]
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
+          popupAnchor: [0, -20]
         });
 
         L.marker([t.lat, t.lng], { icon: customIcon })
-          .addTo(this.map)
-          .bindPopup(this.createPopup(t));
+          .addTo(this.markerLayer)
+          .bindTooltip(String(t.livreur || t.modele || 'Terminal'), { direction: 'top', offset: [0, -18] })
+          .bindPopup(this.createPopup(t), { maxWidth: 300 });
       }
     });
+
+    if (!this.hasFittedFleet && visibleCoordinates.length > 0) {
+      this.fitFleet();
+      this.hasFittedFleet = true;
+    }
+  }
+
+  fitFleet(): void {
+    const points = this.terminaux
+      .filter((terminal) => terminal.lat != null && terminal.lng != null)
+      .map((terminal) => L.latLng(Number(terminal.lat), Number(terminal.lng)));
+    if (points.length === 0) {
+      this.map.setView([5.3599, -4.0083], 12);
+      return;
+    }
+    if (points.length === 1) {
+      this.map.setView(points[0], 14);
+      return;
+    }
+    this.map.fitBounds(L.latLngBounds(points), { padding: [60, 60], maxZoom: 15 });
+  }
+
+  get activeCount(): number {
+    return this.terminaux.filter((terminal) => this.isOnline(terminal) && !this.isAlert(terminal)).length;
+  }
+
+  get offlineCount(): number {
+    return this.terminaux.filter((terminal) => !this.isOnline(terminal) && !this.isAlert(terminal)).length;
+  }
+
+  get alertCount(): number {
+    return this.terminaux.filter((terminal) => this.isAlert(terminal)).length;
+  }
+
+  private isOnline(terminal: any): boolean {
+    const status = terminal.connectivity_status || terminal.statut;
+    return status === 'online' || status === 'En ligne';
+  }
+
+  private isAlert(terminal: any): boolean {
+    return terminal.statut === 'Verrouillé' || Number(terminal.batterie) < 15;
   }
 
   private createPopup(terminal: any): HTMLElement {
