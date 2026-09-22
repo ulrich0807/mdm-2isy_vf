@@ -187,6 +187,17 @@ class DeviceCommandExecutor(
             )
         }
 
+        val packageName = command.payload.packageName
+        if (packageName.isNullOrBlank()) {
+            return immediate(
+                callback,
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.INVALID_COMMAND_PAYLOAD,
+                    "Le nom du package attendu est manquant.",
+                ),
+            )
+        }
+
         if (!adminController.status().isDeviceOwner) {
             return immediate(
                 callback,
@@ -197,7 +208,7 @@ class DeviceCommandExecutor(
             )
         }
 
-        appInstaller.installSilently(apkUrl) { success, error ->
+        appInstaller.installSilently(apkUrl, packageName) { success, error ->
             val result = if (success) {
                 CommandExecutionResult.Success(
                     CommandExecutionProof(

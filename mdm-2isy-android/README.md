@@ -26,7 +26,7 @@ Agent natif Kotlin pour Android 13 et versions supérieures. Il communique avec 
 | `compileSdk` | `37` |
 | `targetSdk` | `36` |
 
-Version actuelle de l’agent : `0.1.2` (`versionCode` 3).
+Version actuelle de l’agent : `0.1.3` (`versionCode` 4).
 
 Le wrapper Gradle est versionné. Utiliser le JDK intégré à Android Studio ou un JDK 17 et installer Android SDK Platform 37.
 

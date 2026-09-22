@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\App;
 use App\Models\DeviceCredential;
 use App\Models\DeviceEnrollmentToken;
 use App\Models\DeviceGroup;
@@ -182,6 +183,36 @@ class DeviceEnrollmentApiTest extends TestCase
                 'com.example.primary',
                 'com.example.scanner',
             ]);
+    }
+
+    public function test_heartbeat_applies_the_organization_application_blacklist_without_a_profile(): void
+    {
+        $organization = $this->organization();
+        $otherOrganization = $this->organization();
+        [, $enrollmentToken] = $this->enrollmentToken($organization);
+        $enrollment = $this->postJson('/api/v1/device/enroll', [
+            'enrollment_token' => $enrollmentToken,
+            'device_uid' => (string) Str::uuid(),
+        ])->assertCreated();
+
+        App::query()->create([
+            'organization_id' => $organization->id,
+            'nom' => 'Facebook',
+            'pkg' => 'com.facebook.katana',
+            'type' => 'noire',
+        ]);
+        App::query()->create([
+            'organization_id' => $otherOrganization->id,
+            'nom' => 'Application autre client',
+            'pkg' => 'com.example.other',
+            'type' => 'noire',
+        ]);
+
+        $this->withToken($enrollment->json('data.device_token'))
+            ->postJson('/api/v1/device/heartbeat')
+            ->assertOk()
+            ->assertJsonPath('data.policy.blacklist_apps', ['com.facebook.katana'])
+            ->assertJsonPath('data.policy.kiosk', false);
     }
 
     public function test_heartbeat_rejects_identity_or_tenant_changes_and_bounds_telemetry(): void

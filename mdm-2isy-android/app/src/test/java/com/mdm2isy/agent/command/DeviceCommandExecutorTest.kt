@@ -103,6 +103,33 @@ class DeviceCommandExecutorTest {
         )
     }
 
+    @Test
+    fun `install forwards the expected package name to PackageInstaller`() {
+        val installer = FakeAppInstaller()
+        val executor = DeviceCommandExecutor(
+            adminController = DeviceAdminController(
+                FakePolicyGateway(adminActive = true, deviceOwner = true),
+            ),
+            locationProvider = unusedLocationProvider(),
+            appInstaller = installer,
+            clock = FIXED_CLOCK,
+        )
+
+        var result: CommandExecutionResult? = null
+        executor.execute(
+            command(
+                "install_app",
+                CommandPayload(
+                    url = "https://api.example.test/application.apk",
+                    packageName = "com.example.application",
+                ),
+            ),
+        ) { result = it }
+
+        assertEquals("com.example.application", installer.expectedPackageName)
+        assertTrue(result is CommandExecutionResult.Success)
+    }
+
     private fun unusedLocationProvider(): DeviceLocationProvider = DeviceLocationProvider(
         source = object : CurrentLocationSource {
             override fun request(
@@ -161,7 +188,15 @@ class DeviceCommandExecutorTest {
     }
 
     private class FakeAppInstaller : AppInstaller {
-        override fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit) {
+        var expectedPackageName: String? = null
+            private set
+
+        override fun installSilently(
+            apkUrl: String,
+            expectedPackageName: String,
+            callback: (Boolean, String?) -> Unit,
+        ) {
+            this.expectedPackageName = expectedPackageName
             callback(true, null)
         }
 

@@ -13,7 +13,11 @@ import java.util.UUID
 import kotlin.concurrent.thread
 
 interface AppInstaller {
-    fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit)
+    fun installSilently(
+        apkUrl: String,
+        expectedPackageName: String,
+        callback: (Boolean, String?) -> Unit,
+    )
     fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit)
 }
 
@@ -23,7 +27,11 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
         const val MAX_APK_BYTES = 100L * 1024L * 1024L
     }
 
-    override fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit) {
+    override fun installSilently(
+        apkUrl: String,
+        expectedPackageName: String,
+        callback: (Boolean, String?) -> Unit,
+    ) {
         thread {
             try {
                 val url = URL(apkUrl)
@@ -46,7 +54,11 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                 }
 
                 val packageInstaller = context.packageManager.packageInstaller
-                val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+                val params = PackageInstaller.SessionParams(
+                    PackageInstaller.SessionParams.MODE_FULL_INSTALL,
+                ).apply {
+                    setAppPackageName(expectedPackageName)
+                }
                 val sessionId = packageInstaller.createSession(params)
                 val session = packageInstaller.openSession(sessionId)
 

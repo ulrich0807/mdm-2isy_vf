@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\App as ManagedApp;
 use App\Models\Terminal;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -134,22 +135,49 @@ class DeviceHeartbeatController extends Controller
             'data' => [
                 'device_id' => $device->public_id,
                 'server_time' => $serverTime->toIso8601String(),
-                'policy' => $device->profil ? [
-                    'kiosk' => $device->profil->kiosk,
-                    'app_kiosk' => $device->profil->app_kiosk,
-                    'kiosk_apps' => $device->profil->kiosk_apps,
-                    'no_cam' => $device->profil->no_cam,
-                    'no_usb' => $device->profil->no_usb,
-                    'no_bt' => $device->profil->no_bt,
-                    'no_wifi' => $device->profil->no_wifi,
-                    'no_data' => $device->profil->no_data,
-                    'no_airplane' => $device->profil->no_airplane,
-                    'pin_fort' => $device->profil->pin_fort,
-                    'blacklist_apps' => $device->profil->blacklist_apps,
-                    'whitelist_apps' => $device->profil->whitelist_apps,
-                ] : null,
+                'policy' => $this->policyFor($device),
             ],
         ]);
+    }
+
+    /**
+     * Merge organization-wide application blocks with the assigned profile.
+     * A blacklisted application therefore applies at the next heartbeat even
+     * when the terminal has no explicit profile.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function policyFor(Terminal $device): ?array
+    {
+        $profile = $device->profil;
+        $organizationBlacklist = ManagedApp::query()
+            ->where('organization_id', $device->organization_id)
+            ->where('type', 'noire')
+            ->pluck('pkg')
+            ->all();
+        $blacklist = array_values(array_unique(array_filter(array_merge(
+            $profile?->blacklist_apps ?? [],
+            $organizationBlacklist,
+        ))));
+
+        if (! $profile && $blacklist === []) {
+            return null;
+        }
+
+        return [
+            'kiosk' => (bool) ($profile?->kiosk ?? false),
+            'app_kiosk' => $profile?->app_kiosk,
+            'kiosk_apps' => $profile?->kiosk_apps ?? [],
+            'no_cam' => (bool) ($profile?->no_cam ?? false),
+            'no_usb' => (bool) ($profile?->no_usb ?? false),
+            'no_bt' => (bool) ($profile?->no_bt ?? false),
+            'no_wifi' => (bool) ($profile?->no_wifi ?? false),
+            'no_data' => (bool) ($profile?->no_data ?? false),
+            'no_airplane' => (bool) ($profile?->no_airplane ?? false),
+            'pin_fort' => (bool) ($profile?->pin_fort ?? false),
+            'blacklist_apps' => $blacklist,
+            'whitelist_apps' => $profile?->whitelist_apps ?? [],
+        ];
     }
 
     /**
