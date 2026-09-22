@@ -265,12 +265,12 @@ class MainActivity : Activity() {
                 stopLockTask()
                 adminController.setKioskMode(emptyArray())
                 isKioskModeActive = false
-                kioskButton.text = "Activer Kiosque"
+                kioskButton.setText(R.string.kiosk_enable_action)
             } else {
                 adminController.setKioskMode(arrayOf(packageName))
                 startLockTask()
                 isKioskModeActive = true
-                kioskButton.text = "Désactiver Kiosque"
+                kioskButton.setText(R.string.kiosk_disable_action)
             }
         } catch (e: Exception) {
             messageValue.text = "Erreur Kiosque: ${e.message}"
@@ -282,6 +282,12 @@ class MainActivity : Activity() {
         val enrolled = session != null
         enrollmentStatus.text = getString(
             if (enrolled) R.string.status_enrolled else R.string.status_not_enrolled,
+        )
+        enrollmentStatus.setBackgroundResource(
+            if (enrolled) R.drawable.status_success_background else R.drawable.status_background,
+        )
+        enrollmentStatus.setTextColor(
+            getColor(if (enrolled) R.color.mdm_success else R.color.mdm_blue_dark),
         )
         enrollmentPanel.visibility = if (enrolled) View.GONE else View.VISIBLE
         setEnrollmentFormEnabled(!enrollmentInProgress && !enrolled)
@@ -310,6 +316,7 @@ class MainActivity : Activity() {
         if (!enrollmentInProgress && enrolled && status.lastMessage.isNotBlank()) {
             messageValue.text = status.lastMessage
         }
+        messageValue.visibility = if (messageValue.text.isNullOrBlank()) View.GONE else View.VISIBLE
         startAgentButton.isEnabled = enrolled && !status.running
     }
 

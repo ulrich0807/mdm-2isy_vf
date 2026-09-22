@@ -27,7 +27,9 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
+        android:icon="@drawable/mdm_2isy_logo"
         android:label="@string/app_name"
+        android:roundIcon="@drawable/mdm_2isy_logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.Mdm2Isy"
         android:usesCleartextTraffic="false">

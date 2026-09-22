@@ -57,11 +57,13 @@ button, input, select, textarea { font: inherit; }
 }
 
 .brand-mark {
-  display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px;
+  display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 48px;
   border: 1px solid rgba(255,255,255,.3); border-radius: 14px;
   background: rgba(255,255,255,.15); color: white; font-weight: 900; letter-spacing: -.04em;
   box-shadow: inset 0 1px rgba(255,255,255,.2);
+  overflow: hidden;
 }
+.brand-mark img { width: 43px; height: 43px; object-fit: contain; }
 .brand-name { color: white; font-size: 1.08rem; font-weight: 800; letter-spacing: .02em; }
 .brand-caption { color: rgba(255,255,255,.58); font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; }
 .user-card { border: 1px solid rgba(255,255,255,.12); border-radius: 18px; background: rgba(255,255,255,.09); }

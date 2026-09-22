@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="mdm_blue">#0077FF</color>
-    <color name="mdm_blue_dark">#004FA8</color>
-    <color name="mdm_background">#F4F7FB</color>
-    <color name="mdm_text">#182033</color>
-    <color name="mdm_text_secondary">#5F6B7A</color>
+    <color name="mdm_blue">#1677FF</color>
+    <color name="mdm_blue_dark">#123A7A</color>
+    <color name="mdm_background">#F3F6FA</color>
+    <color name="mdm_text">#15233A</color>
+    <color name="mdm_text_secondary">#5D6B7E</color>
+    <color name="mdm_text_muted">#8B98AA</color>
+    <color name="mdm_success">#16895A</color>
     <color name="mdm_danger">#B42318</color>
 </resources>
