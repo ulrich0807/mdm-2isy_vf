@@ -63,8 +63,8 @@ export class Location implements OnInit, OnDestroy {
     L.control.scale({ position: 'bottomleft', imperial: false }).addTo(this.map);
 
     // Style de carte Premium moderne (CartoDB Voyager)
-    const streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; contributeurs OpenStreetMap',
       maxZoom: 19
     }).addTo(this.map);
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -311,6 +311,7 @@ export class Location implements OnInit, OnDestroy {
       this.historyStartMarker = null;
     }
     this.currentHistoryTerminal = null;
+    this.hasFittedFleet = false;
     this.chargerDonnees();
   }
 }

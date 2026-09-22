@@ -21,9 +21,15 @@
       </div>
     </div>
     
-    <div *ngIf="currentHistoryTerminal" class="bg-primary text-white rounded-pill px-4 py-2 shadow-sm d-flex align-items-center gap-3" style="pointer-events: auto;">
-      <span class="fw-bold">Historique 24h : {{ currentHistoryTerminal.livreur }}</span>
-      <button class="btn btn-sm btn-light rounded-pill fw-bold" (click)="fermerTrajet()">Fermer</button>
+    <div *ngIf="currentHistoryTerminal" class="history-banner bg-primary text-white rounded-4 px-3 py-2 shadow d-flex align-items-center gap-3" style="pointer-events: auto;">
+      <span class="history-icon">⌁</span>
+      <div class="min-w-0">
+        <div class="small text-white-50">Suivi du trajet sur 24 heures</div>
+        <div class="fw-bold text-truncate">{{ currentHistoryTerminal.livreur || currentHistoryTerminal.modele || 'Terminal' }}</div>
+      </div>
+      <button class="btn btn-sm btn-light rounded-pill fw-bold ms-auto text-nowrap" (click)="fermerTrajet()" aria-label="Quitter le suivi du trajet">
+        ✕ Quitter le suivi
+      </button>
     </div>
   </div>
 
@@ -35,7 +41,7 @@
       {{ errorMessage }}
     </div>
 
-    <div class="map-actions position-absolute top-0 end-0 m-3 d-flex gap-2" style="z-index: 1000;">
+    <div *ngIf="!currentHistoryTerminal" class="map-actions position-absolute top-0 end-0 m-3 d-flex gap-2" style="z-index: 1000;">
       <button class="btn btn-light rounded-circle shadow-sm d-flex align-items-center justify-content-center border"
               (click)="fitFleet()" title="Afficher toute la flotte" aria-label="Afficher toute la flotte">
         <span class="fs-5">◎</span>

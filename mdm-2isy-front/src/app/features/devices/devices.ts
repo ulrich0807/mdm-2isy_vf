@@ -45,6 +45,8 @@ export class Devices implements OnInit {
   contextError = '';
   groupError = '';
   enrollmentListError = '';
+  profileUpdating: Record<number, boolean> = {};
+  profileFeedback: Record<number, string> = {};
 
   isSuperAdmin = false;
   selectedOrganizationId: number | null = null;
@@ -344,20 +346,34 @@ export class Devices implements OnInit {
     });
   }
 
-  modifierProfil(terminal: Terminal, newProfilId: string): void {
-    const parsedId = newProfilId ? parseInt(newProfilId, 10) : null;
+  modifierProfil(terminal: Terminal, newProfilId: number | string | null): void {
+    const parsedId = newProfilId === null || newProfilId === undefined || newProfilId === ''
+      ? null
+      : Number(newProfilId);
+    if (parsedId !== null && (!Number.isInteger(parsedId) || parsedId <= 0)) {
+      this.contextError = 'Le profil sélectionné est invalide.';
+      return;
+    }
+    this.contextError = '';
+    this.profileFeedback[terminal.id] = '';
+    this.profileUpdating[terminal.id] = true;
     this.termSvc.updateProfil(terminal.id, parsedId).subscribe({
       next: (res) => {
+        this.profileUpdating[terminal.id] = false;
         if (res.success && res.data) {
           const index = this.terminaux.findIndex((item) => item.id === terminal.id);
           if (index !== -1) {
             this.terminaux[index] = res.data;
           }
           this.filtrer();
+          this.profileFeedback[terminal.id] = parsedId === null
+            ? 'Profil retiré.'
+            : 'Profil appliqué, synchronisation demandée.';
         }
         this.cdRef.detectChanges();
       },
       error: (err) => {
+        this.profileUpdating[terminal.id] = false;
         this.contextError = this.apiError(err, "Impossible d'affecter le profil.");
         this.cdRef.detectChanges();
       }
@@ -908,6 +924,25 @@ export class Devices implements OnInit {
     return 'bg-secondary';
   }
 
+  get onlineCount(): number {
+    return this.terminaux.filter((terminal) => this.terminalStatus(terminal) === 'En ligne').length;
+  }
+
+  get offlineCount(): number {
+    return this.terminaux.filter((terminal) => this.terminalStatus(terminal) === 'Hors ligne').length;
+  }
+
+  get managedCount(): number {
+    return this.terminaux.filter((terminal) => terminal.enrollment_status === 'enrolled').length;
+  }
+
+  get lowBatteryCount(): number {
+    return this.terminaux.filter((terminal) => {
+      const battery = this.terminalBattery(terminal);
+      return battery !== null && battery <= 20;
+    }).length;
+  }
+
   enrollmentGroupName(enrollment: DeviceEnrollment): string {
     return this.display(
       enrollment.device_group?.name ??
@@ -1094,13 +1129,15 @@ export class Devices implements OnInit {
   }
 
   chargerProfils(): void {
-    this.profSvc.getAll().subscribe({
+    this.profSvc.getAll(this.organizationIdForRequest()).subscribe({
       next: (res: any) => {
         this.profs = res ?? [];
         this.cdRef.detectChanges();
       },
       error: (err: any) => {
-        console.error("Impossible de charger les profils.", err);
+        this.contextError = this.apiError(err, 'Impossible de charger les profils de cette organisation.');
+        this.profs = [];
+        this.cdRef.detectChanges();
       }
     });
   }

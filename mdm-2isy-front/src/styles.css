@@ -350,6 +350,11 @@ button, input, select, textarea { font: inherit; }
 .leaflet-tooltip { border: 0; border-radius: 10px; box-shadow: 0 8px 20px rgba(15,23,42,.14); font-weight: 700; }
 @keyframes map-spin { to { transform: rotate(360deg); } }
 .map-refreshing { display: inline-block; animation: map-spin .8s linear infinite; }
+.history-banner { min-width: min(430px, 100%); }
+.history-icon { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 12px; background: rgba(255,255,255,.16); font-size: 1.25rem; }
+.fleet-stat-card { transition: transform .2s ease, box-shadow .2s ease; }
+.fleet-stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(15,23,42,.09) !important; }
+.fleet-stat-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 14px; font-weight: 900; }
 
 @media (max-width: 1199.98px) {
   .app-content { padding: 22px; }
@@ -417,9 +422,13 @@ button, input, select, textarea { font: inherit; }
   .location-toolbar > div:last-child { border-radius: 16px !important; padding: 10px 12px !important; flex-wrap: wrap; }
   .location-toolbar + div { min-height: 62dvh !important; margin: 0 !important; }
   .map-legend { display: grid !important; grid-template-columns: 1fr; border-radius: 16px !important; }
+  .history-banner { min-width: 0; width: 100%; align-items: flex-start !important; flex-wrap: wrap; }
+  .history-banner .btn { width: 100%; margin-left: 0 !important; }
   .map-actions { margin: 10px !important; }
   .map-sync { margin: 10px !important; }
   .leaflet-control-attribution { max-width: 70vw; overflow: hidden; white-space: nowrap; }
+  .fleet-summary .fleet-stat-icon { width: 38px; height: 38px; flex-basis: 38px; }
+  .fleet-summary .fs-4 { font-size: 1.25rem !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

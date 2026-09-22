@@ -11,6 +11,41 @@
 
   <div *ngIf="contextError" class="alert alert-danger py-2 small">{{ contextError }}</div>
 
+  <div class="row g-3 mb-4 fleet-summary">
+    <div class="col-6 col-xl-3">
+      <div class="card border-0 h-100 p-3 fleet-stat-card">
+        <div class="d-flex align-items-center gap-3">
+          <span class="fleet-stat-icon bg-primary bg-opacity-10 text-primary">📱</span>
+          <div><div class="fs-4 fw-bold">{{ terminaux.length }}</div><div class="small text-muted fw-bold">Terminaux</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="card border-0 h-100 p-3 fleet-stat-card">
+        <div class="d-flex align-items-center gap-3">
+          <span class="fleet-stat-icon bg-success bg-opacity-10 text-success">●</span>
+          <div><div class="fs-4 fw-bold">{{ onlineCount }}</div><div class="small text-muted fw-bold">En ligne</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="card border-0 h-100 p-3 fleet-stat-card">
+        <div class="d-flex align-items-center gap-3">
+          <span class="fleet-stat-icon bg-warning bg-opacity-10 text-warning">◷</span>
+          <div><div class="fs-4 fw-bold">{{ offlineCount }}</div><div class="small text-muted fw-bold">Hors ligne</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="card border-0 h-100 p-3 fleet-stat-card">
+        <div class="d-flex align-items-center gap-3">
+          <span class="fleet-stat-icon bg-danger bg-opacity-10 text-danger">!</span>
+          <div><div class="fs-4 fw-bold">{{ lowBatteryCount }}</div><div class="small text-muted fw-bold">Batteries faibles</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div *ngIf="isSuperAdmin" class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
     <div class="row align-items-center g-3">
       <div class="col-lg-4">
@@ -171,11 +206,14 @@
                   style="min-width: 145px;"
                   [ngModel]="term.profil_id ?? null"
                   (ngModelChange)="modifierProfil(term, $event)"
+                  [disabled]="profileUpdating[term.id]"
                   [attr.aria-label]="'Profil du terminal ' + terminalImei(term)"
                 >
                   <option [ngValue]="null">Aucun profil</option>
                   <option *ngFor="let p of profs" [ngValue]="p.id">{{ p.nom }}</option>
                 </select>
+                <div *ngIf="profileUpdating[term.id]" class="small text-primary mt-1">Application du profil…</div>
+                <div *ngIf="profileFeedback[term.id]" class="small text-success mt-1">✓ {{ profileFeedback[term.id] }}</div>
               </td>
               <td class="py-3">
                 <div *ngIf="terminalManufacturer(term) !== '—'" class="small text-muted">{{ terminalManufacturer(term) }}</div>

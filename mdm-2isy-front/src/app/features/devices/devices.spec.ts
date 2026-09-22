@@ -232,4 +232,24 @@ describe('Devices', () => {
     expect(component.afficherModalUninstall).toBe(false);
     expect(component.commandFeedbackFor(terminal)?.kind).toBe('success');
   });
+
+  it('assigns a numeric profile and keeps the returned profile on the terminal', () => {
+    flushInitialContext([{ id: 8, profil_id: null, connectivity_status: 'online' }]);
+    const terminal = component.terminaux[0];
+
+    component.modifierProfil(terminal, 12);
+
+    const request = httpMock.expectOne(`${environment.apiUrl}/terminals/8/profil`);
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ profil_id: 12 });
+    request.flush({
+      success: true,
+      message: 'Profil mis à jour et synchronisation demandée.',
+      data: { ...terminal, profil_id: 12, profil: { id: 12, nom: 'Livreur strict' } },
+    });
+
+    expect(component.terminaux[0].profil_id).toBe(12);
+    expect(component.profileUpdating[8]).toBe(false);
+    expect(component.profileFeedback[8]).toContain('Profil appliqué');
+  });
 });
