@@ -235,14 +235,7 @@ class MdmAgentService : Service() {
 
     private fun promoteToForeground() {
         val notification = buildNotification()
-        val isDeviceOwner = DeviceAdminController(this).status().isDeviceOwner
-        var serviceType = if (
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && isDeviceOwner
-        ) {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
-        } else {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-        }
+        var serviceType = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 
         if (canUseBackgroundLocationType()) {
             serviceType = serviceType or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
@@ -253,14 +246,19 @@ class MdmAgentService : Service() {
         } catch (_: SecurityException) {
             // A debug device may have foreground location but not background
             // location yet. Keep the network agent alive and let locate fail safely.
-            val fallback = if (
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && isDeviceOwner
-            ) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
-            } else {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            }
-            startForeground(NOTIFICATION_ID, notification, fallback)
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+            )
+        } catch (_: IllegalArgumentException) {
+            // Some vendor Android builds reject optional service types even
+            // when declared. Fall back to the universally declared data type.
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+            )
         }
     }
 
