@@ -5,20 +5,19 @@
 
 <!-- Vue APPLICATION (Dashboard, Terminaux) avec le menu latéral -->
 <ng-container *ngIf="!isLoginPage">
-  <div class="d-flex p-2 p-md-4 animate-fade-up" style="height: 100vh; background-color: #eaf0f7;">
-    <div class="d-flex w-100 rounded-5 overflow-hidden" style="box-shadow: 0 15px 40px rgba(0,0,0,0.08); background-color: #f7f9fc;">
-      
-      <!-- Sidebar -->
-      <app-sidebar></app-sidebar>
+  <div class="app-viewport animate-fade-up">
+    <div class="app-shell">
+      <div class="mobile-scrim" [class.show]="menuOpen" (click)="closeMenu()"></div>
+      <aside class="app-sidebar" [class.open]="menuOpen">
+        <app-sidebar (navigate)="closeMenu()"></app-sidebar>
+      </aside>
 
-      <!-- Contenu Principal -->
-      <div class="flex-grow-1 d-flex flex-column">
-        <app-header></app-header>
-        <div class="p-4 overflow-auto flex-grow-1">
+      <div class="app-main">
+        <app-header (menuToggle)="toggleMenu()"></app-header>
+        <main class="app-content">
            <router-outlet></router-outlet>
-        </div>
+        </main>
       </div>
-
     </div>
   </div>
 </ng-container>

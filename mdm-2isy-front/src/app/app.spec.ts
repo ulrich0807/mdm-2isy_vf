@@ -25,4 +25,15 @@ describe('App', () => {
     expect(compiled.querySelector('router-outlet')).toBeTruthy();
     expect(compiled.querySelector('app-sidebar')).toBeNull();
   });
+
+  it('should open and close the mobile navigation drawer', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    expect(app.menuOpen).toBe(false);
+    app.toggleMenu();
+    expect(app.menuOpen).toBe(true);
+    app.closeMenu();
+    expect(app.menuOpen).toBe(false);
+  });
 });

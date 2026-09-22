@@ -13,6 +13,7 @@ import { filter } from 'rxjs/operators';
 })
 export class App {
   isLoginPage = false;
+  menuOpen = false;
 
   constructor(private router: Router) {
     // Écoute les changements d'URL pour savoir si on est sur la page login
@@ -22,6 +23,15 @@ export class App {
       const primaryRoute = this.router.parseUrl(event.urlAfterRedirects).root.children['primary'];
       const redirectedPath = primaryRoute?.segments.map((segment) => segment.path).join('/') ?? '';
       this.isLoginPage = redirectedPath === 'login' || redirectedPath === '';
+      this.menuOpen = false;
     });
+  }
+
+  toggleMenu(): void {
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
   }
 }

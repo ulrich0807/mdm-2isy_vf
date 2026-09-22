@@ -1,23 +1,29 @@
-<div class="bg-white p-3 d-flex justify-content-between align-items-center w-100 shadow-sm">
-  <h5 class="m-0 fw-bold text-secondary">Supervision de la Flotte</h5>
-  <div class="d-flex align-items-center gap-3">
+<header class="topbar d-flex justify-content-between align-items-center w-100">
+  <div class="d-flex align-items-center gap-3 min-w-0">
+    <button type="button" class="mobile-menu-button" (click)="menuToggle.emit()" aria-label="Ouvrir le menu">☰</button>
+    <div class="min-w-0">
+      <h5 class="m-0 fw-bold text-dark text-truncate">Supervision de la flotte</h5>
+      <small class="topbar-subtitle">Pilotage sécurisé des terminaux</small>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-3 topbar-meta">
     
     <!-- STATUT 1 : TOUT VA BIEN (Vert) -->
     <span *ngIf="sysStat === 'ok'" class="badge bg-success p-2 d-flex align-items-center gap-2 shadow-sm" style="animation: fadeIn 0.3s ease-in-out;">
       <span class="spinner-grow spinner-grow-sm bg-white" style="width: 8px; height: 8px;"></span>
-      Système Opérationnel
+      <span class="status-copy">Système opérationnel</span>
     </span>
 
     <!-- STATUT 2 : COUPURE INTERNET NAVIGATEUR (Rouge) -->
     <span *ngIf="sysStat === 'err_net'" class="badge bg-danger p-2 d-flex align-items-center gap-2 shadow-sm" style="animation: fadeIn 0.3s ease-in-out;">
-      <span class="fs-6">📶</span> Vous n'êtes pas connecté à internet
+      <span class="fs-6">📶</span><span class="status-copy">Connexion internet indisponible</span>
     </span>
 
     <!-- STATUT 3 : SERVEUR INACCESSIBLE (Orange) -->
     <span *ngIf="sysStat === 'err_srv'" class="badge p-2 d-flex align-items-center gap-2 shadow-sm" style="background-color: #ff9900; animation: fadeIn 0.3s ease-in-out;">
-      <span class="fs-6">🔌</span> Serveur Inaccessible
+      <span class="fs-6">🔌</span><span class="status-copy">Serveur inaccessible</span>
     </span>
 
     <strong class="text-dark fs-5 ms-2">{{ hr }}</strong>
   </div>
-</div>
+</header>

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, EventEmitter, OnInit, OnDestroy, HostListener, Output } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Nécessaire pour les *ngIf
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
@@ -10,6 +10,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './header.html'
 })
 export class Header implements OnInit, OnDestroy {
+  @Output() menuToggle = new EventEmitter<void>();
   hr: string = '';
   tmr: any;
   sysStat: 'ok' | 'err_net' | 'err_srv' = 'ok'; // Les 3 états de notre système

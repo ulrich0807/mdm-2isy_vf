@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Auth } from '../../services/auth';
@@ -11,6 +11,7 @@ import { AlertService } from '../../services/alert.service';
   templateUrl: './sidebar.html'
 })
 export class Sidebar implements OnInit {
+  @Output() navigate = new EventEmitter<void>();
   isSuperAdmin: boolean = false;
   usrName: string = '';
   usrRole: string = '';
@@ -80,6 +81,10 @@ export class Sidebar implements OnInit {
     this.auth.logout().subscribe({
       complete: () => this.router.navigate(['/login']),
     });
+  }
+
+  onNavigate(): void {
+    this.navigate.emit();
   }
 
   private getInitials(name: string): string {

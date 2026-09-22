@@ -1,17 +1,22 @@
-<!-- Application du même dégradé bleu que la page de connexion -->
-<div class="h-100 d-flex flex-column shadow position-relative" style="width: 250px; background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%);">
+<div class="sidebar-panel h-100 d-flex flex-column position-relative">
+  <div class="brand-lockup px-3 pt-4 pb-3 d-flex align-items-center gap-3">
+    <div class="brand-mark">2I</div>
+    <div class="min-w-0">
+      <div class="brand-name">2ISY MDM</div>
+      <div class="brand-caption">Device control center</div>
+    </div>
+  </div>
   
   <!-- Section Profil Utilisateur Dynamique -->
-  <div class="text-center py-3 px-3">
-    <div class="mb-2">
-      <div class="shadow-sm rounded-circle bg-white d-inline-flex align-items-center justify-content-center fw-bold"
-           style="width: 50px; height: 50px; color: #0044aa; font-size: 1.1rem;"
+  <div class="user-card d-flex align-items-center gap-3 mx-3 mb-3 p-3">
+      <div class="user-avatar d-inline-flex align-items-center justify-content-center fw-bold"
            aria-hidden="true">
         {{ usrInitials }}
       </div>
+    <div class="min-w-0">
+      <h6 class="fw-bold m-0 text-white text-truncate">{{ usrName }}</h6>
+      <small class="text-white-50">{{ usrRole }}</small>
     </div>
-    <h6 class="fw-bold m-0 text-white text-truncate" style="font-size: 0.95rem;">{{ usrName }}</h6>
-    <small class="text-white-50" style="font-size: 0.70rem;">Statut : {{ usrRole }}</small>
   </div>
   
   <!-- Menu de navigation -->
@@ -19,10 +24,9 @@
     <li class="nav-item w-100" *ngFor="let item of menuItems">
       <a class="nav-link rounded-4 d-flex align-items-center py-2 px-3 text-white text-decoration-none" 
          [routerLink]="item.route" 
-         routerLinkActive="active-menu"
-         style="transition: all 0.2s ease;">
-        <span class="me-3 fs-5" style="width: 22px; text-align: center;">{{ item.icon }}</span> 
-        <span style="font-size: 0.85rem;" class="text-truncate flex-grow-1">{{ item.label }}</span>
+         routerLinkActive="active-menu" (click)="onNavigate()">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label text-truncate flex-grow-1">{{ item.label }}</span>
         <span *ngIf="item.badge" class="badge rounded-pill bg-danger" style="font-size: 0.70rem;">{{ item.badge }}</span>
       </a>
     </li>
@@ -31,8 +35,7 @@
   <!-- Bouton de déconnexion en bas -->
   <div class="p-3 mt-auto border-top border-white border-opacity-10">
     <button type="button" (click)="logout()" [disabled]="isLoggingOut"
-            class="nav-link d-flex align-items-center py-2 px-3 text-white text-decoration-none rounded-4 border-0 w-100 text-start"
-            style="background: rgba(255, 255, 255, 0.1);">
+            class="logout-button d-flex align-items-center py-2 px-3 text-white rounded-4 border-0 w-100 text-start">
       <span class="me-3 fs-5" style="width: 22px; text-align: center;">🚪</span> 
       <span style="font-size: 0.85rem;">{{ isLoggingOut ? 'Déconnexion...' : 'Déconnexion' }}</span>
     </button>
