@@ -11,7 +11,11 @@ echo "Mise à jour de l'API Laravel..."
 cd "$project_dir/mdm-2isy-api"
 composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 php artisan migrate --force
-php artisan storage:link
+# La commande est relançable : un lien déjà présent n'est pas une anomalie de
+# déploiement et ne doit pas masquer le résultat des étapes suivantes.
+if [ ! -L public/storage ]; then
+    php artisan storage:link
+fi
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache

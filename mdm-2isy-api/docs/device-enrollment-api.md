@@ -1,6 +1,6 @@
 # Contrat d'enrôlement de l'agent Android
 
-Ce document décrit le contrat HTTP déjà disponible pour le futur agent Android MDM.
+Ce document décrit le contrat HTTP utilisé par l'agent Android MDM.
 Toutes les communications doivent utiliser HTTPS hors développement local.
 
 ## Cycle de vie
@@ -57,7 +57,7 @@ Content-Type: application/json
   "model": "Rock 1",
   "android_version": "13",
   "android_build": "<build-id>",
-  "agent_version": "0.1.0",
+  "agent_version": "0.1.4",
   "battery_level": 84,
   "storage_total_mb": 128000,
   "storage_free_mb": 96000
@@ -81,7 +81,7 @@ Content-Type: application/json
   "storage_total_mb": 128000,
   "storage_free_mb": 95000,
   "android_version": "13",
-  "agent_version": "0.1.0",
+  "agent_version": "0.1.4",
   "latitude": 5.3599,
   "longitude": -4.0083
 }
@@ -92,10 +92,20 @@ le groupe et le `device_uid` ne peuvent pas être modifiés par un heartbeat.
 `last_seen_at` est mis à jour par le serveur ; un terminal est considéré en ligne
 pendant cinq minutes après son dernier heartbeat.
 
-## Limites de cette version
+## Capacités actuelles
 
-- Aucun agent Android n'est encore implémenté.
-- La rotation contrôlée d'un secret appareil et le ré-enrôlement restent à ajouter.
-- L'attestation matérielle et le certificate pinning ne sont pas encore intégrés.
-- Le heartbeat ne distribue pas encore les commandes MDM ; le moteur de commandes
-  sera la prochaine couche fonctionnelle.
+- l'agent Android est opérationnel comme Device Owner et conserve son identité
+  dans le stockage privé de l'application ;
+- le heartbeat authentifié remonte l'inventaire et récupère les commandes en
+  attente ; FCM accélère le réveil, tandis que le polling reste le mécanisme de
+  reprise fiable ;
+- les résultats sont idempotents et couvrent notamment verrouillage, effacement,
+  localisation, politiques, kiosque et gestion des applications ;
+- un administrateur peut révoquer le secret actif. Le ré-enrôlement s'effectue
+  ensuite au moyen d'une nouvelle invitation à usage unique.
+
+## Renforcements optionnels
+
+L'attestation matérielle Android et le certificate pinning ne font pas partie du
+périmètre fonctionnel initial. Ils peuvent être ajoutés comme durcissement après
+validation de la chaîne de certificats et des contraintes des ROM Blackview.
