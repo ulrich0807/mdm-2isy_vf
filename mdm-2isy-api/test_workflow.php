@@ -14,6 +14,12 @@ use Illuminate\Support\Str;
 
 echo "Démarrage du test d'intégration du workflow MDM...\n";
 
+$workflowPassword = env('MDM_WORKFLOW_TEST_PASSWORD');
+if (! is_string($workflowPassword) || strlen($workflowPassword) < 12) {
+    fwrite(STDERR, "Définissez MDM_WORKFLOW_TEST_PASSWORD avec au moins 12 caractères.\n");
+    exit(1);
+}
+
 // Run artisan serve in background or assume it's not running and use internal methods.
 // Actually, HTTP requests might fail if `php artisan serve` is not running. 
 // Let's use internal methods to simulate everything without network.
@@ -22,14 +28,14 @@ echo "Démarrage du test d'intégration du workflow MDM...\n";
 $org = Organization::firstOrCreate(['name' => '2ISY Workflow Test'], ['slug' => '2isy-workflow']);
 $superAdmin = User::firstOrCreate(
     ['email' => 'superadmin@2isy.com'],
-    ['name' => 'Super Admin', 'password' => bcrypt('password123'), 'role' => 'super_admin', 'organization_id' => $org->id]
+    ['name' => 'Super Admin', 'password' => bcrypt($workflowPassword), 'role' => 'super_admin', 'organization_id' => $org->id]
 );
 echo "1. Organisation (ID: {$org->id}) et Super Admin (ID: {$superAdmin->id}) prêts.\n";
 
 // 2. Administrateur Client
 $admin = User::firstOrCreate(
     ['email' => 'admin@client.com'],
-    ['name' => 'Admin Client', 'password' => bcrypt('password123'), 'role' => 'admin', 'organization_id' => $org->id]
+    ['name' => 'Admin Client', 'password' => bcrypt($workflowPassword), 'role' => 'admin', 'organization_id' => $org->id]
 );
 echo "2. Administrateur Client (ID: {$admin->id}) prêt.\n";
 
@@ -42,7 +48,7 @@ $enrollmentToken = DeviceEnrollmentToken::create([
     'label' => 'Warehouse A',
     'expires_at' => now()->addMinutes(60),
 ]);
-echo "3. Token d'enrôlement généré: $plainTextToken\n";
+echo "3. Token d'enrôlement généré et conservé hors des logs.\n";
 
 // 4. Enrôlement du Terminal (Simulation de la requête Agent vers /api/v1/device/enroll)
 $request = \Illuminate\Http\Request::create('/api/v1/device/enroll', 'POST', [
@@ -61,7 +67,7 @@ if ($response->getStatusCode() !== 200 && $response->getStatusCode() !== 201) {
     exit(1);
 }
 $enrollData = json_decode($response->getContent(), true)['data'];
-echo "4. Terminal enrôlé. Public ID: {$enrollData['device_id']}. Secret: {$enrollData['device_token']}\n";
+echo "4. Terminal enrôlé. Public ID: {$enrollData['device_id']}.\n";
 $terminalId = $enrollData['device_id'];
 $terminal = Terminal::where('public_id', $terminalId)->first();
 
@@ -70,9 +76,7 @@ $lic = Lic::create([
     'cle' => strtoupper(Str::random(16)),
     'statut' => 'Active',
     'term_id' => $terminal->id,
-    'org_id' => $org->id,
-    'user_id' => $admin->id,
-    'date_actv' => now()
+    'exp_le' => now()->addYear(),
 ]);
 echo "5. Licence générée et assignée: {$lic->cle}. Statut: {$lic->statut}\n";
 

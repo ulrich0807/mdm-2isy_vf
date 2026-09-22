@@ -3,85 +3,121 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lic;
+use App\Models\Terminal;
+use App\Support\OrganizationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class LicController extends Controller
 {
-    // Lister toutes les licences
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'data' => Lic::all()
-        ]);
+        $organization = OrganizationAccess::resolve($request->user(), $request->query('organization_id'));
+        $licences = Lic::query()
+            ->when($organization, fn ($query) => $query->whereBelongsTo($organization))
+            ->orderByDesc('id')
+            ->get();
+
+        $licences->each(function (Lic $licence): void {
+            if ($licence->statut === 'Active' && $licence->exp_le?->isPast()) {
+                $licence->update(['statut' => 'Expirée']);
+            }
+        });
+
+        return response()->json(['success' => true, 'data' => $licences]);
     }
 
-    // Le Super Admin génère une nouvelle licence vierge
-    public function store(Request $req)
+    public function store(Request $request)
     {
-        if ($req->user()->role !== 'super_admin') {
+        if ($request->user()->role !== 'super_admin') {
             return response()->json(['success' => false, 'message' => 'Accès refusé'], 403);
         }
 
-        // Création d'une clé unique (ex: MDM-2026-A1B2C3)
-        $cle = 'MDM-' . date('Y') . '-' . strtoupper(Str::random(6));
-
-        $lic = Lic::create([
-            'cle' => $cle,
-            'statut' => 'Vierge'
+        $organization = OrganizationAccess::resolve(
+            $request->user(),
+            $request->input('organization_id'),
+            true,
+        );
+        $licence = Lic::create([
+            'organization_id' => $organization->id,
+            'cle' => 'MDM-'.date('Y').'-'.strtoupper(Str::random(6)),
+            'statut' => 'Vierge',
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Licence générée avec succès',
-            'data' => $lic
-        ]);
+            'data' => $licence,
+        ], 201);
     }
 
-    // Le client active la licence sur un terminal
-    public function actv(Request $req, $id)
+    public function actv(Request $request, int $id)
     {
-        $lic = Lic::find($id);
+        $licence = $this->accessibleLicence($request, $id);
 
-        if (!$lic || $lic->statut === 'Expirée') {
+        if ($licence->statut === 'Expirée' || $licence->exp_le?->isPast()) {
+            $licence->update(['statut' => 'Expirée']);
+
             return response()->json(['success' => false, 'message' => 'Licence invalide ou expirée'], 400);
         }
 
-        // C'est ici que la magie du compte à rebours opère :
-        // Si c'est la toute première activation, on lance le chrono de 1 an.
-        if (is_null($lic->exp_le)) {
-            $lic->exp_le = now()->addYear();
-        }
-
-        $lic->statut = 'Active';
-        // $lic->term_id = $req->term_id; // À décommenter quand tu lieras un terminal précis depuis l'interface
-        $lic->save();
+        $licence->update([
+            'exp_le' => $licence->exp_le ?? now()->addYear(),
+            'statut' => 'Active',
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Licence activée avec succès ! Fin le : ' . $lic->exp_le->format('d/m/Y')
+            'message' => 'Licence activée avec succès ! Fin le : '.$licence->fresh()->exp_le->format('d/m/Y'),
         ]);
     }
 
-    // Assigner ou détacher un terminal d'une licence
-    public function assign(\Illuminate\Http\Request $req, $id)
+    public function assign(Request $request, int $id)
     {
-        $lic = Lic::find($id);
+        $licence = $this->accessibleLicence($request, $id);
+        $data = $request->validate(['term_id' => ['nullable', 'integer']]);
 
-        if (!$lic || $lic->statut !== 'Active') {
+        if ($licence->statut !== 'Active' || $licence->exp_le?->isPast()) {
+            if ($licence->exp_le?->isPast()) {
+                $licence->update(['statut' => 'Expirée']);
+            }
+
             return response()->json(['success' => false, 'message' => 'Licence invalide ou non active'], 400);
         }
 
-        // term_id sera null pour détacher, ou un ID pour assigner
-        $lic->term_id = $req->term_id;
-        $lic->save();
+        $terminalId = $data['term_id'] ?? null;
+        if ($terminalId !== null) {
+            Terminal::query()
+                ->where('organization_id', $licence->organization_id)
+                ->findOrFail($terminalId);
 
-        $msg = $req->term_id ? 'Licence assignée avec succès.' : 'Licence détachée du terminal.';
-        
+            $alreadyAssigned = Lic::query()
+                ->where('term_id', $terminalId)
+                ->where('id', '!=', $licence->id)
+                ->exists();
+
+            if ($alreadyAssigned) {
+                throw ValidationException::withMessages([
+                    'term_id' => 'Ce terminal possède déjà une licence.',
+                ]);
+            }
+        }
+
+        $licence->update(['term_id' => $terminalId]);
+
         return response()->json([
             'success' => true,
-            'message' => $msg
+            'message' => $terminalId ? 'Licence assignée avec succès.' : 'Licence détachée du terminal.',
         ]);
+    }
+
+    private function accessibleLicence(Request $request, int $id): Lic
+    {
+        $organization = OrganizationAccess::resolve($request->user());
+
+        return Lic::query()
+            ->when($organization, fn ($query) => $query->whereBelongsTo($organization))
+            ->findOrFail($id);
     }
 }

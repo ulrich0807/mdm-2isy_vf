@@ -3,112 +3,159 @@
 namespace App\Console\Commands;
 
 use App\Models\Alert;
+use App\Models\DeviceCommand;
 use App\Models\Terminal;
 use Illuminate\Console\Command;
 
 class CheckTerminalAlerts extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'mdm:check-alerts';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Vérifie les terminaux pour générer ou résoudre des alertes (batterie, stockage, hors ligne)';
+    protected $description = 'Génère et résout les alertes de supervision du parc MDM';
 
-    /**
-     * Execute the console command.
-     */
-    public function handle()
+    public function handle(): int
     {
-        $terminals = Terminal::query()->where('enrollment_status', 'enrolled')->get();
+        $terminals = Terminal::query()
+            ->where('enrollment_status', 'enrolled')
+            ->with('lic')
+            ->get();
 
         foreach ($terminals as $terminal) {
             $this->checkConnectivity($terminal);
             $this->checkBattery($terminal);
             $this->checkStorage($terminal);
+            $this->checkLicence($terminal);
         }
 
+        $this->checkFailedCommands();
         $this->info('Vérification des alertes terminée.');
+
+        return self::SUCCESS;
     }
 
-    private function checkConnectivity(Terminal $terminal)
+    private function checkConnectivity(Terminal $terminal): void
     {
-        $thresholdMinutes = 60; // 1 hour offline
+        $offline = $terminal->last_seen_at === null
+            || $terminal->last_seen_at->lt(now()->subHour());
 
-        $isOffline = $terminal->last_seen_at === null || $terminal->last_seen_at->diffInMinutes(now()) > $thresholdMinutes;
-
-        if ($isOffline) {
-            $this->raiseAlert($terminal, 'offline', "Le terminal n'a pas communiqué depuis plus de {$thresholdMinutes} minutes.");
-        } else {
-            $this->resolveAlert($terminal, 'offline');
-        }
+        $this->syncCondition(
+            $terminal,
+            'offline',
+            'critical',
+            $offline,
+            "Le terminal n'a pas communiqué depuis plus de 60 minutes.",
+        );
     }
 
-    private function checkBattery(Terminal $terminal)
+    private function checkBattery(Terminal $terminal): void
     {
-        if ($terminal->batterie === null) {
+        $level = $terminal->batterie;
+        $this->syncCondition(
+            $terminal,
+            'battery',
+            $level !== null && $level <= 15 ? 'critical' : 'warning',
+            $level !== null && $level < 20,
+            "Le niveau de batterie est faible ({$level}%).",
+        );
+    }
+
+    private function checkStorage(Terminal $terminal): void
+    {
+        $total = $terminal->storage_total_mb;
+        $free = $terminal->storage_free_mb;
+        $ratio = $total && $free !== null ? $free / $total : null;
+        $message = $ratio === null
+            ? 'Stockage indisponible.'
+            : sprintf('Stockage faible : %s Mo libres sur %s Mo.', number_format($free, 0, ',', ' '), number_format($total, 0, ',', ' '));
+
+        $this->syncCondition(
+            $terminal,
+            'storage',
+            $ratio !== null && $ratio < 0.05 ? 'critical' : 'warning',
+            $ratio !== null && $ratio < 0.10,
+            $message,
+        );
+    }
+
+    private function checkLicence(Terminal $terminal): void
+    {
+        $licence = $terminal->lic;
+        $expiresAt = $licence?->exp_le;
+        $expired = $expiresAt?->isPast() ?? false;
+        $expiring = ! $expired && $expiresAt !== null && $expiresAt->lte(now()->addDays(30));
+
+        $this->syncCondition(
+            $terminal,
+            'licence_expired',
+            'critical',
+            $expired,
+            'La licence du terminal est expirée.',
+        );
+        $this->syncCondition(
+            $terminal,
+            'licence_expiring',
+            'warning',
+            $expiring,
+            $expiresAt ? 'La licence expire le '.$expiresAt->format('d/m/Y').'.' : '',
+        );
+    }
+
+    private function checkFailedCommands(): void
+    {
+        DeviceCommand::query()
+            ->with('terminal:id,organization_id')
+            ->whereIn('status', [DeviceCommand::STATUS_FAILED, DeviceCommand::STATUS_EXPIRED])
+            ->where('updated_at', '>=', now()->subDays(7))
+            ->each(function (DeviceCommand $command): void {
+                if (! $command->terminal) {
+                    return;
+                }
+
+                Alert::query()->firstOrCreate(
+                    ['source_key' => 'command:'.$command->public_id],
+                    [
+                        'organization_id' => $command->organization_id,
+                        'terminal_id' => $command->terminal_id,
+                        'type' => 'command_failure',
+                        'severity' => $command->type === DeviceCommand::TYPE_WIPE ? 'critical' : 'warning',
+                        'message' => sprintf(
+                            'La commande %s a échoué%s.',
+                            $command->type,
+                            $command->error_message ? ' : '.$command->error_message : '',
+                        ),
+                    ],
+                );
+            });
+    }
+
+    private function syncCondition(
+        Terminal $terminal,
+        string $type,
+        string $severity,
+        bool $active,
+        string $message,
+    ): void {
+        $sourceKey = 'terminal:'.$terminal->id.':'.$type;
+
+        if ($active) {
+            Alert::query()->updateOrCreate(
+                ['source_key' => $sourceKey],
+                [
+                    'organization_id' => $terminal->organization_id,
+                    'terminal_id' => $terminal->id,
+                    'type' => $type,
+                    'severity' => $severity,
+                    'message' => $message,
+                    'resolved_at' => null,
+                ],
+            );
+
             return;
         }
 
-        $threshold = 15; // 15% battery
-
-        if ($terminal->batterie < $threshold) {
-            $this->raiseAlert($terminal, 'battery', "Le niveau de batterie est critique ({$terminal->batterie}%).");
-        } else {
-            $this->resolveAlert($terminal, 'battery');
-        }
-    }
-
-    private function checkStorage(Terminal $terminal)
-    {
-        if ($terminal->storage_total_mb === null || $terminal->storage_free_mb === null || $terminal->storage_total_mb == 0) {
-            return;
-        }
-
-        $freeRatio = $terminal->storage_free_mb / $terminal->storage_total_mb;
-
-        if ($freeRatio < 0.10) { // Less than 10% free
-            $freeMb = number_format($terminal->storage_free_mb, 0, ',', ' ');
-            $totalMb = number_format($terminal->storage_total_mb, 0, ',', ' ');
-            $this->raiseAlert($terminal, 'storage', "Stockage saturé : Il reste seulement {$freeMb} Mo sur {$totalMb} Mo.");
-        } else {
-            $this->resolveAlert($terminal, 'storage');
-        }
-    }
-
-    private function raiseAlert(Terminal $terminal, string $type, string $message)
-    {
-        // Check if an unresolved alert of this type already exists
-        $exists = Alert::query()
-            ->where('terminal_id', $terminal->id)
-            ->where('type', $type)
-            ->whereNull('resolved_at')
-            ->exists();
-
-        if (!$exists) {
-            Alert::create([
-                'terminal_id' => $terminal->id,
-                'type' => $type,
-                'message' => $message,
-            ]);
-        }
-    }
-
-    private function resolveAlert(Terminal $terminal, string $type)
-    {
         Alert::query()
-            ->where('terminal_id', $terminal->id)
-            ->where('type', $type)
+            ->where('source_key', $sourceKey)
             ->whereNull('resolved_at')
-            ->update([
-                'resolved_at' => now(),
-            ]);
+            ->update(['resolved_at' => now()]);
     }
 }

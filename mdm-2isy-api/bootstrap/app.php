@@ -17,12 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'device.auth' => AuthenticateDevice::class,
+            'role' => \App\Http\Middleware\RequireRole::class,
         ]);
         $middleware->prependToPriorityList(
             [ThrottleRequests::class, ThrottleRequestsWithRedis::class],
             AuthenticateDevice::class,
         );
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+        $middleware->appendToGroup('api', \App\Http\Middleware\AuditAdministrativeAction::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

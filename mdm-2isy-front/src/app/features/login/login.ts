@@ -1,6 +1,6 @@
 import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms'; // Nécessaire pour [(ngModel)]
 import { Auth } from '../../services/auth';
 
@@ -18,6 +18,7 @@ export class Login {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private authService: Auth,
     private cdr: ChangeDetectorRef
   ) {}
@@ -31,8 +32,7 @@ export class Login {
     this.authService.login(this.email, this.motDePasse).subscribe({
       next: (res: any) => {
         this.chargement = false;
-        // Si Laravel valide, on fonce vers le Dashboard
-        this.router.navigate(['/dashboard']);
+        this.router.navigateByUrl(this.safeReturnUrl());
       },
       error: (err: any) => {
         this.chargement = false;
@@ -41,5 +41,15 @@ export class Login {
         this.cdr.detectChanges(); // Force la mise à jour de l'UI
       }
     });
+  }
+
+  private safeReturnUrl(): string {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    if (!returnUrl || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+      return '/dashboard';
+    }
+
+    const targetPath = returnUrl.split(/[?#]/, 1)[0];
+    return targetPath === '/' || targetPath === '/login' ? '/dashboard' : returnUrl;
   }
 }

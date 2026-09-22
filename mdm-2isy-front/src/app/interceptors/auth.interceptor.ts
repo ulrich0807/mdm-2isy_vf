@@ -1,23 +1,43 @@
 import { inject } from '@angular/core';
-import { HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { catchError, throwError } from 'rxjs';
 import { Auth } from '../services/auth';
 import { environment } from '../../environments/environment';
 
 export const authInt: HttpInterceptorFn = (req, next) => {
-  const tok = inject(Auth).token;
+  const auth = inject(Auth);
+  const router = inject(Router);
+  const tok = auth.token;
   const isApiRequest = req.url === environment.apiUrl || req.url.startsWith(`${environment.apiUrl}/`);
+  const isLoginRequest = req.url.split('?', 1)[0] === `${environment.apiUrl}/auth/in`;
+  const request = tok && isApiRequest
+    ? req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${tok}`,
+        },
+      })
+    : req;
 
-  // Le token ne doit être transmis qu'à l'API MDM.
-  if (tok && isApiRequest) {
-    const clonedReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${tok}`
+  return next(request).pipe(
+    catchError((error: unknown) => {
+      if (
+        error instanceof HttpErrorResponse
+        && error.status === 401
+        && isApiRequest
+        && !isLoginRequest
+      ) {
+        const currentUrl = router.url || '/';
+        const currentPath = currentUrl.split(/[?#]/, 1)[0];
+        auth.clearSession();
+
+        if (currentPath !== '/login') {
+          const queryParams = currentPath === '/' ? undefined : { returnUrl: currentUrl };
+          void router.navigate(['/login'], { queryParams });
+        }
       }
-    });
-    // On laisse passer la requête modifiée
-    return next(clonedReq);
-  }
 
-  // S'il n'y a pas de token (ex: page de login), on laisse passer la requête telle quelle
-  return next(req);
+      return throwError(() => error);
+    }),
+  );
 };

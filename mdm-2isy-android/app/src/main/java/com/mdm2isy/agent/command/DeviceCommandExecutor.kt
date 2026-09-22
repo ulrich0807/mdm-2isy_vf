@@ -111,40 +111,29 @@ class DeviceCommandExecutor(
         // Force l'activation de la localisation avant de lancer la recherche
         adminController.forceLocationEnabled()
 
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        var requestHandle: CancellableLocationRequest? = null
+        val requestHandle = locationProvider.locate(
+            timeoutMillis = timeoutSeconds * 1_000L,
+            highAccuracy = command.payload.highAccuracy ?: true,
+        ) { outcome ->
+            val result = when (outcome) {
+                is DeviceLocationResult.Success -> CommandExecutionResult.Success(
+                    CommandExecutionProof(
+                        lat = outcome.location.latitude,
+                        lng = outcome.location.longitude,
+                        accuracyM = outcome.location.accuracyMeters,
+                        executedAt = executedAt(),
+                    ),
+                )
 
-        val runnable = Runnable {
-            requestHandle = locationProvider.locate(
-                timeoutMillis = timeoutSeconds * 1_000L,
-                highAccuracy = command.payload.highAccuracy ?: true,
-            ) { outcome ->
-                val result = when (outcome) {
-                    is DeviceLocationResult.Success -> CommandExecutionResult.Success(
-                        CommandExecutionProof(
-                            lat = outcome.location.latitude,
-                            lng = outcome.location.longitude,
-                            accuracyM = outcome.location.accuracyMeters,
-                            executedAt = executedAt(),
-                        ),
-                    )
-
-                    is DeviceLocationResult.Failure -> CommandExecutionResult.Failure(
-                        errorCode = outcome.errorCode,
-                        errorMessage = outcome.errorMessage,
-                    )
-                }
-                callback(result)
+                is DeviceLocationResult.Failure -> CommandExecutionResult.Failure(
+                    errorCode = outcome.errorCode,
+                    errorMessage = outcome.errorMessage,
+                )
             }
+            callback(result)
         }
 
-        // Attendre 3s que le GPS s'active réellement au niveau de l'OS
-        handler.postDelayed(runnable, 3000L)
-
-        return CommandExecutionHandle { 
-            handler.removeCallbacks(runnable)
-            requestHandle?.cancel()
-        }
+        return CommandExecutionHandle { requestHandle.cancel() }
     }
 
     private fun executeLock(

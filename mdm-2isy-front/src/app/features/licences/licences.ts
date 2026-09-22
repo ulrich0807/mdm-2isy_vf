@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { LicService } from '../../services/lic';
 import { TermService } from '../../services/term';
 import { Auth } from '../../services/auth';
+import { OrganizationService } from '../../services/organization';
+import { Organization } from '../../models/fleet.models';
 
 @Component({
   selector: 'app-licences',
@@ -16,6 +18,8 @@ export class Licences implements OnInit {
   lics: any[] = [];
   terminaux: any[] = [];
   load: boolean = true;
+  organizations: Organization[] = [];
+  selectedOrganizationId: number | null = null;
 
   // --- NOUVEAU : Objet pour les statistiques ---
   stats = {
@@ -33,18 +37,24 @@ export class Licences implements OnInit {
     private licSvc: LicService, 
     private termSvc: TermService,
     private auth: Auth,
+    private organizationSvc: OrganizationService,
     private cdRef: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.isSuperAdmin = this.auth.role === 'super_admin';
-    
+    this.selectedOrganizationId = this.auth.user?.organization_id ?? null;
+    if (this.isSuperAdmin) {
+      this.organizationSvc.getAll().subscribe(res => {
+        this.organizations = res.data;
+      });
+    }
     this.getLics();
     this.getTerminaux();
   }
 
   getLics() {
-    this.licSvc.list().subscribe((res: any) => {
+    this.licSvc.list(this.selectedOrganizationId).subscribe((res: any) => {
       this.lics = res.success ? res.data : [];
       this.calcStats(); // <-- Calcul des stats après chargement
       this.load = false;
@@ -61,7 +71,7 @@ export class Licences implements OnInit {
   }
 
   getTerminaux() {
-    this.termSvc.getAll().subscribe((res: any) => {
+    this.termSvc.getAll(this.selectedOrganizationId ?? undefined).subscribe((res: any) => {
       this.terminaux = res.success ? res.data : [];
     });
   }
@@ -72,12 +82,18 @@ export class Licences implements OnInit {
   }
 
   genererLic() {
-    this.licSvc.gen().subscribe((res: any) => {
+    if (!this.selectedOrganizationId) return alert('Sélectionnez d’abord une organisation.');
+    this.licSvc.gen(this.selectedOrganizationId).subscribe((res: any) => {
       if (res.success) {
         alert(`✅ Nouvelle clé générée : ${res.data.cle}`);
         this.getLics();
       }
     });
+  }
+
+  onOrganizationChange() {
+    this.getLics();
+    this.getTerminaux();
   }
 
   actvLic(id: number) {

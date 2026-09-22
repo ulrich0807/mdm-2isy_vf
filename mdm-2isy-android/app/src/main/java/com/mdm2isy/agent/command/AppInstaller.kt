@@ -4,9 +4,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import com.mdm2isy.agent.receiver.AppInstallResultReceiver
+import com.mdm2isy.agent.receiver.AppOperationCallbacks
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 import kotlin.concurrent.thread
 
 interface AppInstaller {
@@ -16,16 +19,29 @@ interface AppInstaller {
 
 class AndroidAppInstaller(private val context: Context) : AppInstaller {
 
+    private companion object {
+        const val MAX_APK_BYTES = 100L * 1024L * 1024L
+    }
+
     override fun installSilently(apkUrl: String, callback: (Boolean, String?) -> Unit) {
         thread {
             try {
                 val url = URL(apkUrl)
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
+                connection.connectTimeout = 30_000
+                connection.readTimeout = 60_000
+                connection.instanceFollowRedirects = false
                 connection.connect()
 
                 if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                     callback(false, "Échec du téléchargement (HTTP ${connection.responseCode})")
+                    return@thread
+                }
+
+                if (connection.contentLengthLong > MAX_APK_BYTES) {
+                    connection.disconnect()
+                    callback(false, "Le fichier APK dépasse la limite de 100 Mo.")
                     return@thread
                 }
 
@@ -34,32 +50,42 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                 val sessionId = packageInstaller.createSession(params)
                 val session = packageInstaller.openSession(sessionId)
 
-                val out = session.openWrite("mdm_install", 0, -1)
-                val input: InputStream = connection.inputStream
-                val buffer = ByteArray(65536)
-                var bytesRead: Int
-                while (input.read(buffer).also { bytesRead = it } != -1) {
-                    out.write(buffer, 0, bytesRead)
+                var totalBytes = 0L
+                session.openWrite("mdm_install", 0, connection.contentLengthLong).use { out ->
+                    connection.inputStream.use { input: InputStream ->
+                        val buffer = ByteArray(65536)
+                        var bytesRead: Int
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            totalBytes += bytesRead
+                            if (totalBytes > MAX_APK_BYTES) {
+                                throw IllegalArgumentException("Le fichier APK dépasse la limite de 100 Mo.")
+                            }
+                            out.write(buffer, 0, bytesRead)
+                        }
+                        session.fsync(out)
+                    }
                 }
-                session.fsync(out)
-                input.close()
-                out.close()
 
-                // We commit the session but we don't strictly wait for the broadcast for the command proof
-                // because the MDM protocol requires an immediate result for the transition.
-                // In a production app, you would use a PendingIntent and a BroadcastReceiver.
-                val intent = Intent("com.mdm2isy.agent.ACTION_INSTALL_COMPLETE").apply {
-                    setPackage(context.packageName)
+                val operationId = UUID.randomUUID().toString()
+                AppOperationCallbacks.register(operationId, callback)
+                val intent = Intent(context, AppInstallResultReceiver::class.java).apply {
+                    putExtra(AppInstallResultReceiver.EXTRA_OPERATION_ID, operationId)
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
                     context,
                     sessionId,
                     intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
                 )
-                session.commit(pendingIntent.intentSender)
-
-                callback(true, null)
+                try {
+                    session.commit(pendingIntent.intentSender)
+                } catch (exception: Exception) {
+                    AppOperationCallbacks.remove(operationId)
+                    throw exception
+                } finally {
+                    session.close()
+                    connection.disconnect()
+                }
 
             } catch (e: Exception) {
                 callback(false, e.message)
@@ -81,17 +107,23 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
             }
 
             val packageInstaller = pm.packageInstaller
-            val intent = Intent("com.mdm2isy.agent.ACTION_UNINSTALL_COMPLETE").apply {
-                setPackage(context.packageName)
+            val operationId = UUID.randomUUID().toString()
+            AppOperationCallbacks.register(operationId, callback)
+            val intent = Intent(context, AppInstallResultReceiver::class.java).apply {
+                putExtra(AppInstallResultReceiver.EXTRA_OPERATION_ID, operationId)
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
                 System.currentTimeMillis().toInt(),
                 intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
-            packageInstaller.uninstall(packageName, pendingIntent.intentSender)
-            callback(true, null)
+            try {
+                packageInstaller.uninstall(packageName, pendingIntent.intentSender)
+            } catch (exception: Exception) {
+                AppOperationCallbacks.remove(operationId)
+                throw exception
+            }
         } catch (e: Exception) {
             callback(false, e.message)
         }

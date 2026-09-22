@@ -6,6 +6,7 @@ use App\Models\DeviceCredential;
 use App\Models\DeviceEnrollmentToken;
 use App\Models\DeviceGroup;
 use App\Models\Organization;
+use App\Models\Profil;
 use App\Models\Terminal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -148,6 +149,39 @@ class DeviceEnrollmentApiTest extends TestCase
         $this->withToken($deviceToken)
             ->postJson('/api/v1/device/heartbeat')
             ->assertUnauthorized();
+    }
+
+    public function test_heartbeat_returns_multi_kiosk_applications_from_the_assigned_profile(): void
+    {
+        $organization = $this->organization();
+        [, $enrollmentToken] = $this->enrollmentToken($organization);
+        $enrollment = $this->postJson('/api/v1/device/enroll', [
+            'enrollment_token' => $enrollmentToken,
+            'device_uid' => (string) Str::uuid(),
+        ])->assertCreated();
+        $terminal = Terminal::query()
+            ->where('public_id', $enrollment->json('data.device_id'))
+            ->sole();
+        $profile = Profil::query()->create([
+            'nom' => 'Multi-kiosk warehouse',
+            'kiosk' => true,
+            'app_kiosk' => 'com.example.primary',
+            'kiosk_apps' => [
+                'com.example.primary',
+                'com.example.scanner',
+            ],
+        ]);
+        $terminal->profil()->associate($profile)->save();
+
+        $this->withToken($enrollment->json('data.device_token'))
+            ->postJson('/api/v1/device/heartbeat')
+            ->assertOk()
+            ->assertJsonPath('data.policy.kiosk', true)
+            ->assertJsonPath('data.policy.app_kiosk', 'com.example.primary')
+            ->assertJsonPath('data.policy.kiosk_apps', [
+                'com.example.primary',
+                'com.example.scanner',
+            ]);
     }
 
     public function test_heartbeat_rejects_identity_or_tenant_changes_and_bounds_telemetry(): void

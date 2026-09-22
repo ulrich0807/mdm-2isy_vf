@@ -24,6 +24,7 @@ export class Sidebar implements OnInit {
     { label: 'Localisation', icon: '📍', route: '/location' },
     { label: 'Licences', icon: '🔑', route: '/licences' },
     { label: 'Clients', icon: '👥', route: '/clients' },
+    { label: 'Utilisateurs', icon: '🧑‍💼', route: '/users' },
     { label: 'Applications', icon: '📦', route: '/apps' },
     { label: 'Profils', icon: '👤', route: '/profils' },
     { label: 'Journal d\'Audit', icon: '📝', route: '/logs' },
@@ -43,12 +44,15 @@ export class Sidebar implements OnInit {
     
     // Assignation dynamique du nom et du rôle formaté
     this.usrName = usr?.name || 'Utilisateur';
-    this.usrRole = this.isSuperAdmin ? 'Super Administrateur' : 'Administrateur';
+    this.usrRole = ({ super_admin: 'Super Administrateur', admin: 'Administrateur', operator: 'Opérateur', viewer: 'Lecture seule' } as Record<string, string>)[this.auth.role || ''] || 'Utilisateur';
     this.usrInitials = this.getInitials(this.usrName);
 
     // On masque "Clients" pour les simples admins
     if (!this.isSuperAdmin) {
       this.menuItems = this.menuItems.filter(item => item.route !== '/clients');
+    }
+    if (!['admin', 'super_admin'].includes(this.auth.role || '')) {
+      this.menuItems = this.menuItems.filter(item => item.route !== '/users');
     }
 
     this.loadAlertsCount();

@@ -3,24 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Alert;
-use App\Models\Terminal;
 use App\Support\OrganizationAccess;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class AlertController extends Controller
 {
     public function index(Request $request)
     {
-        $organization = OrganizationAccess::resolve($request->user());
+        $organization = OrganizationAccess::resolve($request->user(), $request->query('organization_id'));
 
         $query = Alert::query()
             ->with(['terminal:id,public_id,imei,modele,livreur,organization_id'])
-            ->whereHas('terminal', function ($q) use ($organization) {
-                if ($organization) {
-                    $q->where('organization_id', $organization->id);
-                }
-            });
+            ->when($organization, fn ($query) => $query->whereBelongsTo($organization));
 
         if ($request->query('status') === 'active') {
             $query->whereNull('resolved_at');
@@ -41,11 +35,7 @@ class AlertController extends Controller
         $organization = OrganizationAccess::resolve($request->user());
 
         $alert = Alert::query()
-            ->whereHas('terminal', function ($q) use ($organization) {
-                if ($organization) {
-                    $q->where('organization_id', $organization->id);
-                }
-            })
+            ->when($organization, fn ($query) => $query->whereBelongsTo($organization))
             ->findOrFail($id);
 
         $alert->update(['resolved_at' => now()]);

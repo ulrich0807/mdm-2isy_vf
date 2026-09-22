@@ -137,6 +137,7 @@ class DeviceHeartbeatController extends Controller
                 'policy' => $device->profil ? [
                     'kiosk' => $device->profil->kiosk,
                     'app_kiosk' => $device->profil->app_kiosk,
+                    'kiosk_apps' => $device->profil->kiosk_apps,
                     'no_cam' => $device->profil->no_cam,
                     'no_usb' => $device->profil->no_usb,
                     'no_bt' => $device->profil->no_bt,

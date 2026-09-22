@@ -37,6 +37,9 @@ describe('Devices', () => {
     httpMock
       .expectOne(`${environment.apiUrl}/device-enrollments`)
       .flush({ success: true, data: [] });
+    httpMock
+      .expectOne(`${environment.apiUrl}/profils`)
+      .flush([]);
   }
 
   it('keeps missing device information empty instead of inventing values', () => {
@@ -97,6 +100,7 @@ describe('Devices', () => {
         enrollment_status: 'enrolled',
         connectivity_status: 'offline',
         management_state: 'active',
+        lic: { statut: 'Active' },
       },
       {
         id: 2,
@@ -129,6 +133,7 @@ describe('Devices', () => {
         enrollment_status: 'enrolled',
         connectivity_status: 'offline',
         management_state: 'active',
+        lic: { statut: 'Active' },
       },
     ]);
     const terminal = component.terminaux[0];
@@ -164,6 +169,7 @@ describe('Devices', () => {
         enrollment_status: 'enrolled',
         connectivity_status: 'online',
         management_state: 'active',
+        lic: { statut: 'Active' },
       },
     ]);
     const terminal = component.terminaux[0];
@@ -195,6 +201,35 @@ describe('Devices', () => {
 
     expect(component.afficherModalWipe).toBe(false);
     expect(component.wipePassword).toBe('');
+    expect(component.commandFeedbackFor(terminal)?.kind).toBe('success');
+  });
+
+  it('clears the pending state after a successful uninstall request', () => {
+    flushInitialContext([
+      {
+        id: 1,
+        public_id: 'terminal-public-id',
+        enrollment_status: 'enrolled',
+        connectivity_status: 'online',
+        management_state: 'active',
+        lic: { statut: 'Active' },
+      },
+    ]);
+    const terminal = component.terminaux[0];
+
+    component.ouvrirModalUninstall(terminal);
+    component.uninstallPackage = 'com.example.legacy';
+    component.confirmerUninstall();
+
+    expect(component.isCommandSubmitting(terminal)).toBe(true);
+    const request = httpMock.expectOne(`${environment.apiUrl}/terminals/1/uninstall-app`);
+    expect(request.request.body).toEqual({
+      payload: { packageName: 'com.example.legacy' },
+    });
+    request.flush({ success: true, message: 'Commande mise en file.' });
+
+    expect(component.isCommandSubmitting(terminal)).toBe(false);
+    expect(component.afficherModalUninstall).toBe(false);
     expect(component.commandFeedbackFor(terminal)?.kind).toBe('success');
   });
 });

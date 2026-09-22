@@ -3,6 +3,17 @@ plugins {
     id("com.google.gms.google-services")
 }
 
+val releaseKeystoreFile = providers.environmentVariable("MDM_ANDROID_KEYSTORE_FILE").orNull
+val releaseKeystorePassword = providers.environmentVariable("MDM_ANDROID_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("MDM_ANDROID_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("MDM_ANDROID_KEY_PASSWORD").orNull
+val hasReleaseSigning = listOf(
+    releaseKeystoreFile,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.mdm2isy.agent"
     compileSdk = 37
@@ -18,6 +29,17 @@ android {
         buildConfigField("String", "DEFAULT_API_URL", "\"https://api.mdm-2isy.com/api/v1/device\"")
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseKeystoreFile))
+                storePassword = releaseKeystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             versionNameSuffix = "-debug"
@@ -30,6 +52,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -46,6 +71,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+}
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    doFirst {
+        check(hasReleaseSigning) {
+            "Release signing is not configured. Set MDM_ANDROID_KEYSTORE_FILE, " +
+                "MDM_ANDROID_KEYSTORE_PASSWORD, MDM_ANDROID_KEY_ALIAS and MDM_ANDROID_KEY_PASSWORD."
+        }
+        check(file(requireNotNull(releaseKeystoreFile)).isFile) {
+            "The release keystore file does not exist: $releaseKeystoreFile"
+        }
+    }
 }
 
 dependencies {

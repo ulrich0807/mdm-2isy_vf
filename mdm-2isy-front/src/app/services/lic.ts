@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -12,13 +12,14 @@ export class LicService {
   constructor(private http: HttpClient) {}
 
   // Récupérer la liste des licences
-  list(): Observable<any> {
-    return this.http.get(this.apiUrl);
+  list(organizationId?: number | null): Observable<any> {
+    const params = organizationId ? new HttpParams().set('organization_id', organizationId) : undefined;
+    return this.http.get(this.apiUrl, { params });
   }
 
   // Générer une nouvelle licence (Réservé au Super Admin)
-  gen(): Observable<any> {
-    return this.http.post(this.apiUrl, {});
+  gen(organizationId: number): Observable<any> {
+    return this.http.post(this.apiUrl, { organization_id: organizationId });
   }
 
   // Activer une licence sur un terminal

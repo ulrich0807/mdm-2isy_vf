@@ -6,9 +6,15 @@
       <h3 class="fw-bold m-0 text-dark">Gestion des Applications</h3>
       <p class="text-muted small m-0">Déploiement, Liste Blanche et Blocages (MDM)</p>
     </div>
-    <button (click)="ouvrirModal()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
-      + Ajouter une Application
-    </button>
+    <div class="d-flex gap-2 align-items-center">
+      <select *ngIf="isSuperAdmin" [(ngModel)]="selectedOrganizationId" (ngModelChange)="onOrganizationChange()" class="form-select">
+        <option [ngValue]="null">Toutes les organisations</option>
+        <option *ngFor="let organization of organizations" [ngValue]="organization.id">{{ organization.name }}</option>
+      </select>
+      <button (click)="ouvrirModal()" [disabled]="isSuperAdmin && !selectedOrganizationId" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm text-nowrap" style="background-color: #0077ff;">
+        + Ajouter une Application
+      </button>
+    </div>
   </div>
 
   <!-- Tableau des applications -->
@@ -42,7 +48,8 @@
             </td>
             <td class="py-3 text-muted fw-bold">{{ a.ver }}</td>
             <td class="py-3 px-4 text-end">
-              <button *ngIf="a.type === 'blanche'" class="btn btn-sm btn-primary border-0 me-2 shadow-sm" title="Pousser vers les terminaux">Pousser (Install)</button>
+              <button *ngIf="a.type === 'blanche'" (click)="ouvrirDeploiement(a)" [disabled]="!a.chemin_apk" class="btn btn-sm btn-primary border-0 me-2 shadow-sm" title="Pousser vers les terminaux">Pousser (Install)</button>
+              <button (click)="ouvrirEdition(a)" class="btn btn-sm btn-light border me-2" title="Mettre à jour">✏️</button>
               <button (click)="delApp(a.id)" class="btn btn-sm btn-light border text-danger" title="Supprimer">🗑️</button>
             </td>
           </tr>
@@ -54,7 +61,7 @@
   <!-- MODALE D'AJOUT -->
   <div *ngIf="showModal" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
     <div class="card border-0 shadow-lg rounded-4 p-4 bg-white" style="width: 100%; max-width: 500px; animation: fadeIn 0.2s ease-in-out;">
-      <h5 class="fw-bold mb-4 text-dark">Nouvelle Règle Applicative</h5>
+      <h5 class="fw-bold mb-4 text-dark">{{ editingApp ? 'Mettre à jour l’application' : 'Nouvelle Règle Applicative' }}</h5>
       
       <div class="mb-3">
         <label class="form-label small fw-bold text-muted">Nom usuel</label>
@@ -73,17 +80,46 @@
           <option value="noire">🔴 Liste Noire (Bloquée / À désinstaller)</option>
         </select>
       </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-bold text-muted">Version</label>
+        <input type="text" [(ngModel)]="nvApp.ver" class="form-control" placeholder="Ex: 1.2.0">
+      </div>
       
       <!-- Fichier APK uniquement si liste blanche -->
       <div class="mb-4" *ngIf="nvApp.type === 'blanche'">
         <label class="form-label small fw-bold text-muted">Fichier d'installation (.apk) - Optionnel</label>
         <input type="file" (change)="onFileSel($event)" class="form-control" accept=".apk">
-        <small class="text-muted" style="font-size: 0.7rem;">Si fourni, l'application sera installée à distance.</small>
+        <small class="text-muted" style="font-size: 0.7rem;">Sélectionnez un APK pour fournir ou remplacer le fichier d’installation.</small>
       </div>
       
       <div class="d-flex justify-content-end gap-2 mt-2">
         <button (click)="fermerModal()" class="btn btn-light fw-bold px-4">Annuler</button>
         <button (click)="sauverApp()" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: #0077ff;">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="deployApp" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+    <div class="card border-0 shadow-lg rounded-4 p-4 bg-white" style="width: 100%; max-width: 460px;">
+      <h5 class="fw-bold mb-2">Installer {{ deployApp.nom }}</h5>
+      <p class="small text-muted mb-4">La commande sera exécutée dès que le terminal contactera le serveur.</p>
+      <label class="form-label small fw-bold">Terminaux cibles</label>
+      <div class="border rounded-3 p-2 mb-4 overflow-auto" style="max-height: 260px;">
+        <div *ngIf="terminals.length === 0" class="small text-muted p-2">Aucun terminal disponible.</div>
+        <label *ngFor="let terminal of terminals" class="d-flex align-items-center gap-2 p-2 border-bottom">
+          <input type="checkbox" [checked]="deployTerminalIds.includes(terminal.id)" (change)="toggleTerminal(terminal.id, $any($event.target).checked)">
+          <span class="small">
+            <strong>{{ terminal.livreur || terminal.modele || 'Terminal' }}</strong><br>
+            <span class="text-muted">{{ terminal.imei || terminal.serial_number || terminal.id }}</span>
+          </span>
+        </label>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button (click)="fermerDeploiement()" [disabled]="deploySubmitting" class="btn btn-light fw-bold">Annuler</button>
+        <button (click)="pousserApp()" [disabled]="deployTerminalIds.length === 0 || deploySubmitting" class="btn btn-primary fw-bold">
+          {{ deploySubmitting ? 'Envoi...' : 'Installer sur ' + deployTerminalIds.length + ' terminal(s)' }}
+        </button>
       </div>
     </div>
   </div>

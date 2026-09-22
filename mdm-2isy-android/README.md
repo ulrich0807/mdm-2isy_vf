@@ -1,61 +1,47 @@
 # Agent Android MDM 2ISY
 
-Ce module est le premier socle natif Kotlin de l’agent MDM. Il cible les terminaux professionnels Android 13+ et communique avec le contrat déjà exposé par `mdm-2isy-api`.
+Agent natif Kotlin pour Android 13 et versions supérieures. Il communique avec `mdm-2isy-api`, applique les politiques Device Owner et remonte l'inventaire et l'état du terminal.
 
-## Fonctionnalités de cette tranche
+## Fonctions prises en charge
 
-- écran d’enrôlement manuel avec URL API et jeton à usage unique ;
-- UUID stable par installation et jeton appareil chiffré par Android Keystore/AES-GCM ;
-- inventaire fabricant, modèle, version/build Android, batterie, stockage, version agent, numéro de série et IMEI lorsque le rôle Device Owner l’autorise ;
-- heartbeat toutes les 60 secondes et polling des commandes toutes les 30 secondes ;
-- service foreground persistant `systemExempted` sur un terminal Device Owner ;
-- reprise après redémarrage pour un terminal enrôlé et provisionné ;
-- journal local idempotent avant ACK et avant publication du résultat final ;
-- exécution de `locate`, `lock` et `wipe` avec preuves compatibles avec Laravel ;
-- retry exponentiel réseau, prise en compte de `Retry-After`, révocation sur HTTP 401 et quarantaine des transitions incompatibles ;
-- 15 tests JVM sur les URL, modèles, délais, préconditions Device Owner et preuves de commandes.
+- enrôlement par jeton à usage unique et stockage chiffré du jeton appareil ;
+- inventaire, batterie, stockage, dernière connexion et géolocalisation ;
+- exécution idempotente des commandes avec ACK, résultat persistant et reprise réseau ;
+- verrouillage et effacement à distance réservés au Device Owner ;
+- installation, mise à jour et désinstallation d'APK avec résultat réel de `PackageInstaller` ;
+- liste blanche/noire, kiosque mono ou multi-application ;
+- restrictions caméra, USB et Bluetooth ;
+- politique de PIN numérique complexe d'au moins six caractères ;
+- notification FCM et polling de secours ;
+- reprise après redémarrage.
 
-## Versions du projet
+## Versions et prérequis
 
 | Élément | Version |
 |---|---:|
 | Android Gradle Plugin | `9.3.1` |
-| Gradle | `9.5.0` |
+| Gradle wrapper | `9.5.0` |
 | Java | `17` |
 | `minSdk` | `33` |
 | `compileSdk` | `37` |
 | `targetSdk` | `36` |
 
-Kotlin est intégré à AGP 9 : ne pas ajouter le plugin `org.jetbrains.kotlin.android`.
-
-## Prérequis manquants sur ce poste
-
-Au moment de cette tranche, la machine ne contient ni Android Studio/JDK, ni SDK Android, ni Gradle/ADB. Le dépôt contient `gradle-wrapper.properties`, avec le SHA-256 officiel de la distribution, mais pas encore `gradle-wrapper.jar`, `gradlew` ou `gradlew.bat`.
-
-Installer Android Studio avec JDK 17 et Android SDK Platform 37, puis générer une fois le wrapper avec Gradle 9.5 :
+Le wrapper Gradle est versionné. Utiliser le JDK intégré à Android Studio ou un JDK 17 et installer Android SDK Platform 37.
 
 ```powershell
 cd mdm-2isy-android
-gradle wrapper --gradle-version 9.5.0
-```
-
-Versionner ensuite les trois fichiers générés. Le téléchargement automatique du JAR depuis cette session n’a pas abouti ; aucun binaire non vérifié n’a été ajouté.
-
-Commandes de validation à lancer après installation :
-
-```powershell
 .\gradlew.bat :app:testDebugUnitTest
 .\gradlew.bat :app:assembleDebug
 .\gradlew.bat :app:lintDebug
 ```
 
-## URL de l’API appareil
+L'APK de développement est produit dans `app/build/outputs/apk/debug/app-debug.apk`. Les tests JVM couvrent les modèles réseau, délais, URL, commandes, préconditions Device Owner et preuves de résultat.
 
-La base exacte est :
+## URL de l'API
 
-```text
-https://serveur/api/v1/device
-```
+La valeur embarquée est `https://api.mdm-2isy.com/api/v1/device`. Elle peut être remplacée dans l'écran d'enrôlement par une autre URL HTTPS autorisée.
+
+Le manifeste principal refuse le trafic HTTP en clair. Le manifeste debug l'autorise uniquement pour les essais locaux, par exemple `http://10.0.2.2:8000/api/v1/device` depuis un émulateur.
 
 Routes utilisées :
 
@@ -67,87 +53,45 @@ POST  {base}/commands/{public_id}/ack
 POST  {base}/commands/{public_id}/result
 ```
 
-Le build debug préremplit :
+## Signature et publication d'une release
 
-```text
-http://10.0.2.2:8000/api/v1/device
-```
-
-`10.0.2.2` désigne le PC hôte depuis l’émulateur Android. Le manifeste debug autorise ce HTTP local. Une release refuse toute URL autre que HTTPS et ne contient volontairement aucune adresse de production par défaut.
-
-Sur un téléphone physique, utiliser une URL HTTPS joignable depuis le terminal. Une adresse `localhost` pointerait vers le téléphone lui-même.
-
-## Enrôlement API et Device Owner
-
-Il s’agit de deux opérations différentes :
-
-1. l’enrôlement API échange l’invitation à usage unique contre `device_id` et `device_token` ;
-2. le provisionnement Android Device Owner accorde les privilèges système du DPC.
-
-Une installation APK ou un enrôlement API ne peut pas promouvoir l’application elle-même Device Owner. En production, le provisionnement doit se faire pendant l’assistant initial d’un appareil réinitialisé, par QR Android Enterprise ou zero-touch.
-
-Pour le laboratoire uniquement, installer l’APK sur un émulateur/appareil vierge, sans compte, puis utiliser :
+La clé privée de signature ne doit jamais être déposée dans Git. Définir ces variables dans le coffre-fort du poste ou de la CI :
 
 ```powershell
-# Build debug : applicationId suffixé par .debug
+$env:MDM_ANDROID_KEYSTORE_FILE = 'C:\chemin-securise\mdm-2isy.jks'
+$env:MDM_ANDROID_KEYSTORE_PASSWORD = '...'
+$env:MDM_ANDROID_KEY_ALIAS = 'mdm-2isy'
+$env:MDM_ANDROID_KEY_PASSWORD = '...'
+.\build_release.ps1
+```
+
+Le script exécute les tests, construit la release signée puis publie l'APK dans `mdm-2isy-api/public/apk/mdm-agent.apk` et affiche son SHA-256. La compilation de release échoue explicitement si un secret ou le keystore manque. Archiver le keystore et ses accès dans deux emplacements sécurisés : sans cette clé, les mises à jour de l'agent installé ne sont plus possibles.
+
+## Provisionnement Device Owner
+
+L'enrôlement API et le rôle Android Device Owner sont distincts. En production, provisionner un appareil réinitialisé pendant l'assistant initial au moyen du QR Android Enterprise. L'installation de l'APK seule ne peut pas accorder ce rôle.
+
+Pour un laboratoire uniquement, sur un terminal vierge et sans compte :
+
+```powershell
 adb shell dpm set-device-owner "com.mdm2isy.agent.debug/com.mdm2isy.agent.admin.MdmDeviceAdminReceiver"
-
-# Build release
-adb shell dpm set-device-owner "com.mdm2isy.agent/com.mdm2isy.agent.admin.MdmDeviceAdminReceiver"
-
 adb shell dpm list owners
 ```
 
-Après provisionnement, ouvrir l’application et saisir l’URL ainsi que le jeton générés dans la console MDM. L’agent accorde alors à son propre package les permissions d’inventaire et de localisation autorisées au Device Owner.
+La release utilise le package `com.mdm2isy.agent` au lieu de `com.mdm2isy.agent.debug`.
 
-## Traitement sécurisé des commandes
+## Sécurité des commandes
 
-Séquence locale :
+Une commande suit la séquence locale suivante :
 
 ```text
 RECEIVED -> ACKNOWLEDGED -> EXECUTING -> RESULT_PENDING -> FINAL
 ```
 
-Chaque commande est persistée avant l’ACK. Le JSON final exact est persisté avant l’appel `/result` et rejoué après une coupure réseau. Les conflits expirés deviennent `EXPIRED`; une commande inconnue ou incompatible devient `QUARANTINED`.
+La commande est persistée avant l'ACK et le résultat avant son envoi. Une coupure réseau rejoue la transmission sans réexécuter l'action. `wipe_started=true` n'est enregistré qu'après l'appel Android d'effacement.
 
-Preuves de succès requises :
+> L'effacement réinitialise réellement l'appareil. Le tester uniquement en dernier sur un émulateur jetable ou un Blackview de laboratoire explicitement autorisé.
 
-```json
-{"status":"succeeded","result":{"lat":5.3599,"lng":-4.0083,"accuracy_m":20}}
-{"status":"succeeded","result":{"locked":true}}
-{"status":"succeeded","result":{"wipe_started":true}}
-```
+## Recette matérielle
 
-Le verrouillage ne produit `locked=true` qu’après le retour de `DevicePolicyManager.lockNow()`. L’effacement exige un Device Owner actif :
-
-- Android 14+ : `DevicePolicyManager.wipeDevice(0)` ;
-- Android 13 : `DevicePolicyManager.wipeData(0)`.
-
-`wipe_started=true` n’est jamais fabriqué avant l’appel Android. Le terminal peut néanmoins redémarrer avant de publier le résultat final ; le serveur possède déjà la trace de livraison et l’ACK.
-
-> `wipe` réinitialise réellement le terminal. Ne jamais le tester sur un téléphone personnel ou contenant des données utiles. Utiliser uniquement un émulateur jetable ou un appareil de laboratoire explicitement autorisé.
-
-## Scénario de validation
-
-1. Démarrer Laravel sur une adresse accessible, par exemple `0.0.0.0:8000` en laboratoire.
-2. Créer un émulateur Android 13+ vierge et installer `app-debug.apk`.
-3. Définir le package debug comme Device Owner et vérifier `dpm list owners`.
-4. Générer une invitation dans MDM 2ISY puis enrôler l’agent.
-5. Vérifier un heartbeat et l’inventaire dans la console web.
-6. Tester `locate`, puis `lock`.
-7. Couper le réseau entre ACK et résultat, le rétablir et vérifier le replay sans seconde exécution.
-8. Tester le redémarrage de l’émulateur.
-9. Tester `wipe` en dernier, uniquement sur cet environnement jetable.
-
-## Limites et prochaine tranche
-
-Ce socle utilise un foreground service et du polling. La prochaine évolution devra ajouter FCM comme déclencheur quasi temps réel et WorkManager comme filet de sécurité. Restent également hors de cette tranche :
-
-- activités de provisionnement QR/zero-touch de production ;
-- gestion des applications (installation, mise à jour, suppression, listes autorisées/interdites) ;
-- politiques de mot de passe et restrictions USB/Bluetooth/caméra ;
-- mode kiosque mono/multi-application ;
-- rotation de jeton, attestation matérielle et pinning de certificat ;
-- tests instrumentés Android 13, 14, 16 et 17 sur matériel réel.
-
-Références : [AGP 9.3](https://developer.android.com/build/releases/agp-9-3-0-release-notes), [Kotlin intégré](https://developer.android.com/build/migrate-to-built-in-kotlin), [Device Owner](https://developer.android.com/work/dpc/dedicated-devices), [types de foreground service](https://developer.android.com/develop/background-work/services/fgs/service-types), [DevicePolicyManager](https://developer.android.com/reference/android/app/admin/DevicePolicyManager).
+La validation logicielle locale ne remplace pas la recette constructeur. Exécuter [`docs/PLAN_DE_RECETTE.md`](../docs/PLAN_DE_RECETTE.md) sur un Blackview Rock 1 Pro Android 13+ avant la mise en production, en particulier pour les restrictions matérielles, le kiosque, la reprise après redémarrage et l'effacement.

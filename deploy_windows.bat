@@ -29,7 +29,7 @@ echo Les modifications sont en ligne sur GitHub !
 echo.
 echo NOTE : La connexion SSH automatique a echoue (Port 22 bloque ou Cloudflare).
 echo Veuillez vous connecter a votre serveur comme d'habitude et lancer :
-echo cd /var/www/mdm-2isy_vf ^&^& ./deploy.sh
+echo cd /var/www/mdm-2isy_vf ^&^& bash deploy.sh
 echo ==============================================
 echo.
 

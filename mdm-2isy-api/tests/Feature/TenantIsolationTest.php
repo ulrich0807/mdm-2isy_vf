@@ -3,11 +3,18 @@
 namespace Tests\Feature;
 
 use App\Models\DeviceCredential;
+use App\Models\DeviceCommand;
 use App\Models\DeviceGroup;
+use App\Models\App;
+use App\Models\Lic;
+use App\Models\Log;
 use App\Models\Organization;
+use App\Models\Profil;
 use App\Models\Terminal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -93,6 +100,12 @@ class TenantIsolationTest extends TestCase
             'terminal_id' => $ownTerminal->id,
             'token_hash' => hash('sha256', 'tenant-command-device-token'),
         ]);
+        Lic::query()->create([
+            'cle' => 'MDM-TEST-TENANT-COMMAND',
+            'term_id' => $ownTerminal->id,
+            'statut' => 'Active',
+            'exp_le' => now()->addYear(),
+        ]);
         Sanctum::actingAs($admin);
 
         $this->postJson("/api/terminals/{$ownTerminal->id}/lock")
@@ -144,6 +157,138 @@ class TenantIsolationTest extends TestCase
             'id' => $terminal->id,
             'device_group_id' => $ownGroup->id,
         ]);
+    }
+
+    public function test_admin_only_sees_legacy_resources_from_its_organization(): void
+    {
+        $first = $this->organization('resources-first');
+        $second = $this->organization('resources-second');
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'organization_id' => $first->id,
+        ]);
+        App::create(['organization_id' => $first->id, 'nom' => 'Visible', 'pkg' => 'com.visible', 'type' => 'blanche']);
+        App::create(['organization_id' => $second->id, 'nom' => 'Hidden', 'pkg' => 'com.hidden', 'type' => 'blanche']);
+        Profil::create(['organization_id' => $first->id, 'nom' => 'Visible profile']);
+        Profil::create(['organization_id' => $second->id, 'nom' => 'Hidden profile']);
+        Log::create(['organization_id' => $first->id, 'usr' => 'Visible', 'act' => 'Test', 'typ' => 'primary']);
+        Log::create(['organization_id' => $second->id, 'usr' => 'Hidden', 'act' => 'Test', 'typ' => 'primary']);
+        Lic::create(['organization_id' => $first->id, 'cle' => 'MDM-VISIBLE', 'statut' => 'Vierge']);
+        Lic::create(['organization_id' => $second->id, 'cle' => 'MDM-HIDDEN', 'statut' => 'Vierge']);
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/apps')->assertOk()->assertJsonCount(1)->assertJsonPath('0.nom', 'Visible');
+        $this->getJson('/api/profils')->assertOk()->assertJsonCount(1)->assertJsonPath('0.nom', 'Visible profile');
+        $this->getJson('/api/logs')->assertOk()->assertJsonCount(1)->assertJsonPath('0.usr', 'Visible');
+        $this->getJson('/api/lics')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.cle', 'MDM-VISIBLE');
+    }
+
+    public function test_admin_cannot_delete_or_assign_resources_across_organizations(): void
+    {
+        $first = $this->organization('mutation-first');
+        $second = $this->organization('mutation-second');
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'organization_id' => $first->id,
+        ]);
+        $terminal = $this->terminal($first, 'Own terminal');
+        $foreignTerminal = $this->terminal($second, 'Foreign terminal');
+        $foreignApp = App::create(['organization_id' => $second->id, 'nom' => 'Foreign', 'pkg' => 'com.foreign', 'type' => 'noire']);
+        $ownProfile = Profil::create(['organization_id' => $first->id, 'nom' => 'Own profile']);
+        $foreignProfile = Profil::create(['organization_id' => $second->id, 'nom' => 'Foreign profile']);
+        $licence = Lic::create([
+            'organization_id' => $first->id,
+            'cle' => 'MDM-OWN-LICENCE',
+            'statut' => 'Active',
+            'exp_le' => now()->addYear(),
+        ]);
+        Sanctum::actingAs($admin);
+
+        $this->deleteJson("/api/apps/{$foreignApp->id}")->assertNotFound();
+        $this->putJson("/api/terminals/{$terminal->id}/profil", ['profil_id' => $foreignProfile->id])->assertNotFound();
+        $this->putJson("/api/terminals/{$terminal->id}/profil", ['profil_id' => $ownProfile->id])->assertOk();
+        $this->postJson("/api/lics/{$licence->id}/assign", ['term_id' => $foreignTerminal->id])->assertNotFound();
+    }
+
+    public function test_admin_uploads_an_apk_inside_its_organization(): void
+    {
+        Storage::fake('local');
+        $organization = $this->organization('application-owner');
+        Sanctum::actingAs(User::factory()->create([
+            'role' => 'admin',
+            'organization_id' => $organization->id,
+        ]));
+
+        $response = $this->post('/api/apps', [
+            'nom' => 'Métier',
+            'pkg' => 'com.example.metier',
+            'type' => 'blanche',
+            'chemin_apk' => UploadedFile::fake()->create(
+                'metier.apk',
+                100,
+                'application/vnd.android.package-archive',
+            ),
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.organization_id', $organization->id);
+
+        $path = $response->json('data.chemin_apk');
+        Storage::disk('local')->assertExists($path);
+
+        $terminal = $this->terminal($organization, 'APK target');
+        DeviceCredential::create([
+            'terminal_id' => $terminal->id,
+            'token_hash' => hash('sha256', 'apk-target-token'),
+        ]);
+        Lic::create([
+            'organization_id' => $organization->id,
+            'cle' => 'MDM-APK-TARGET',
+            'term_id' => $terminal->id,
+            'statut' => 'Active',
+            'exp_le' => now()->addYear(),
+        ]);
+
+        $update = $this->post("/api/apps/{$response->json('data.id')}/update", [
+            'ver' => '2.0.0',
+            'chemin_apk' => UploadedFile::fake()->create(
+                'metier-2.apk',
+                120,
+                'application/vnd.android.package-archive',
+            ),
+        ]);
+        $update->assertOk()->assertJsonPath('data.ver', '2.0.0');
+        Storage::disk('local')->assertMissing($path);
+        Storage::disk('local')->assertExists($update->json('data.chemin_apk'));
+
+        $deployment = $this->postJson("/api/apps/{$response->json('data.id')}/deploy", [
+            'terminal_ids' => [$terminal->id, 999999],
+        ]);
+        $deployment->assertStatus(207)
+            ->assertJsonCount(1, 'data.accepted')
+            ->assertJsonCount(1, 'data.rejected')
+            ->assertJsonPath('data.accepted.0.terminal_id', $terminal->id);
+
+        $command = DeviceCommand::query()
+            ->where('terminal_id', $terminal->id)
+            ->where('type', 'install_app')
+            ->firstOrFail();
+        $this->assertSame('com.example.metier', $command->payload['packageName']);
+
+        $this->get($command->payload['url'])
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.android.package-archive');
+    }
+
+    public function test_super_admin_must_select_an_organization_when_creating_a_licence(): void
+    {
+        $organization = $this->organization('licence-owner');
+        Sanctum::actingAs(User::factory()->create(['role' => 'super_admin']));
+
+        $this->postJson('/api/lics', [])->assertUnprocessable()->assertJsonValidationErrors('organization_id');
+        $this->postJson('/api/lics', ['organization_id' => $organization->id])
+            ->assertCreated()
+            ->assertJsonPath('data.organization_id', $organization->id);
     }
 
     public function test_super_admin_creates_a_client_with_an_isolated_organization(): void

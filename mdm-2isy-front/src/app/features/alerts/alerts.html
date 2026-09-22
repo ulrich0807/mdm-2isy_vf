@@ -2,10 +2,16 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2 class="m-0 text-white"><i class="bi bi-bell-fill me-2 text-danger"></i> Centre d'Alertes</h2>
       
-      <div class="btn-group" role="group">
-        <button type="button" class="btn btn-outline-light" [class.active]="filterStatus === 'all'" (click)="setFilter('all')">Toutes</button>
-        <button type="button" class="btn btn-outline-danger" [class.active]="filterStatus === 'active'" (click)="setFilter('active')">Actives</button>
-        <button type="button" class="btn btn-outline-success" [class.active]="filterStatus === 'resolved'" (click)="setFilter('resolved')">Résolues</button>
+      <div class="d-flex gap-2">
+        <select *ngIf="isSuperAdmin" [(ngModel)]="selectedOrganizationId" (ngModelChange)="loadAlerts()" class="form-select bg-dark text-white border-secondary">
+          <option [ngValue]="null">Toutes les organisations</option>
+          <option *ngFor="let organization of organizations" [ngValue]="organization.id">{{ organization.name }}</option>
+        </select>
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-outline-light" [class.active]="filterStatus === 'all'" (click)="setFilter('all')">Toutes</button>
+          <button type="button" class="btn btn-outline-danger" [class.active]="filterStatus === 'active'" (click)="setFilter('active')">Actives</button>
+          <button type="button" class="btn btn-outline-success" [class.active]="filterStatus === 'resolved'" (click)="setFilter('resolved')">Résolues</button>
+        </div>
       </div>
     </div>
 
@@ -47,8 +53,8 @@
                   <small class="text-muted">{{ alert.terminal?.imei }}</small>
                 </td>
                 <td>
-                  <span class="badge" [ngClass]="{'bg-danger': alert.type === 'offline' || alert.type === 'storage', 'bg-warning text-dark': alert.type === 'battery', 'bg-secondary': alert.resolved_at}">
-                    {{ alert.type | uppercase }}
+                  <span class="badge" [ngClass]="alert.resolved_at ? 'bg-secondary' : (alert.severity === 'critical' ? 'bg-danger' : 'bg-warning text-dark')">
+                    {{ getAlertLabel(alert.type) }}
                   </span>
                 </td>
                 <td>{{ alert.message }}</td>

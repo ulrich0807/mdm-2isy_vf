@@ -103,40 +103,76 @@ export class Location implements OnInit, OnDestroy {
     container.className = 'p-2';
     container.style.minWidth = '200px';
 
+    const createElement = <K extends keyof HTMLElementTagNameMap>(
+      tagName: K,
+      className: string,
+      text?: string,
+    ): HTMLElementTagNameMap[K] => {
+      const element = document.createElement(tagName);
+      element.className = className;
+      if (text !== undefined) {
+        element.textContent = text;
+      }
+      return element;
+    };
+
     const isOnline = (terminal.connectivity_status || terminal.statut) === 'online' || (terminal.connectivity_status || terminal.statut) === 'En ligne';
     const badgeColor = isOnline ? 'success' : 'warning';
     const textStatus = isOnline ? 'En mouvement' : 'Hors Ligne';
 
-    container.innerHTML = `
-      <div class="d-flex align-items-center mb-3 pb-2 border-bottom">
-        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-          <span class="fs-5">📦</span>
-        </div>
-        <div>
-          <h6 class="fw-bold m-0 text-dark">${terminal.livreur || 'Livreur inconnu'}</h6>
-          <small class="text-muted fw-bold" style="font-size: 0.75rem;">${terminal.modele || 'Appareil'}</small>
-        </div>
-      </div>
-      
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="text-muted small fw-bold">Statut</span>
-        <span class="badge bg-${badgeColor}">${textStatus}</span>
-      </div>
-      
-      <div class="d-flex justify-content-between align-items-center">
-        <span class="text-muted small fw-bold">Batterie</span>
-        <span class="fw-bold d-flex align-items-center gap-1 ${terminal.batterie < 15 ? 'text-danger' : 'text-success'}">
-          ${terminal.batterie || '--'}%
-        </span>
-      </div>
-    `;
+    const header = createElement('div', 'd-flex align-items-center mb-3 pb-2 border-bottom');
+    const icon = createElement(
+      'div',
+      'bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3',
+    );
+    icon.style.width = '40px';
+    icon.style.height = '40px';
+    icon.appendChild(createElement('span', 'fs-5', '📦'));
+
+    const identity = document.createElement('div');
+    identity.appendChild(
+      createElement('h6', 'fw-bold m-0 text-dark', String(terminal.livreur || 'Livreur inconnu')),
+    );
+    const model = createElement(
+      'small',
+      'text-muted fw-bold',
+      String(terminal.modele || 'Appareil'),
+    );
+    model.style.fontSize = '0.75rem';
+    identity.appendChild(model);
+    header.append(icon, identity);
+    container.appendChild(header);
+
+    const statusRow = createElement(
+      'div',
+      'd-flex justify-content-between align-items-center mb-2',
+    );
+    statusRow.append(
+      createElement('span', 'text-muted small fw-bold', 'Statut'),
+      createElement('span', `badge bg-${badgeColor}`, textStatus),
+    );
+    container.appendChild(statusRow);
+
+    const batteryRow = createElement(
+      'div',
+      'd-flex justify-content-between align-items-center',
+    );
+    batteryRow.append(
+      createElement('span', 'text-muted small fw-bold', 'Batterie'),
+      createElement(
+        'span',
+        `fw-bold d-flex align-items-center gap-1 ${terminal.batterie < 15 ? 'text-danger' : 'text-success'}`,
+        `${terminal.batterie ?? '--'}%`,
+      ),
+    );
+    container.appendChild(batteryRow);
 
     const btnTrajet = document.createElement('button');
     btnTrajet.className = 'btn btn-sm btn-outline-primary w-100 mt-3 fw-bold rounded-pill';
-    btnTrajet.innerHTML = '📍 Voir le trajet (24h)';
-    btnTrajet.onclick = () => {
+    btnTrajet.textContent = '📍 Voir le trajet (24h)';
+    btnTrajet.addEventListener('click', () => {
       this.afficherTrajet(terminal);
-    };
+    });
     container.appendChild(btnTrajet);
 
     return container;

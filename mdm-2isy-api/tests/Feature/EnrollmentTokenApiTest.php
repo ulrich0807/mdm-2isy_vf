@@ -32,7 +32,7 @@ class EnrollmentTokenApiTest extends TestCase
 
         $plainTextToken = $response->json('data.enrollment_token');
         $this->assertIsString($plainTextToken);
-        $this->assertStringStartsWith('mdm_enroll_', $plainTextToken);
+        $this->assertMatchesRegularExpression('/\A\d{6}\z/', $plainTextToken);
 
         $storedToken = DeviceEnrollmentToken::query()->sole();
         $this->assertSame(hash('sha256', $plainTextToken), $storedToken->token_hash);
@@ -43,6 +43,12 @@ class EnrollmentTokenApiTest extends TestCase
         $response->assertJsonPath('data.enrollment_payload.version', 1)
             ->assertJsonPath('data.enrollment_payload.token', $plainTextToken)
             ->assertJsonStructure(['data' => ['enrollment_payload' => ['api_url']]]);
+        $this->assertSame(
+            url('/apk/mdm-agent.apk'),
+            $response->json('data.device_owner_qr_payload')[
+                'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION'
+            ],
+        );
 
         $this->getJson('/api/device-enrollments')
             ->assertOk()

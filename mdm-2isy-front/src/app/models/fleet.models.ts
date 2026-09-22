@@ -156,6 +156,8 @@ export interface Alert {
   id: number;
   terminal_id: number;
   type: 'offline' | 'battery' | 'storage' | string;
+  severity?: 'warning' | 'critical';
+  source_key?: string | null;
   message: string;
   resolved_at?: string | null;
   created_at?: string;

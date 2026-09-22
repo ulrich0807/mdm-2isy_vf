@@ -1,19 +1,16 @@
 import { Routes } from '@angular/router';
 import { Login } from './features/login/login';
-import { Dashboard } from './features/dashboard/dashboard';
 import { authGrd, superAdminGrd } from './guards/auth.grd';
-import { Clients } from './features/clients/clients';
-import { Licences } from './features/licences/licences';
-import { Settings } from './features/settings/settings';
-import { Apps } from './features/apps/apps';
-import { Profils } from './features/profils/profils';
-import { Logs } from './features/logs/logs';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
   
   // Routes protégées par le Guard
-  { path: 'dashboard', component: Dashboard, canActivate: [authGrd] },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./features/dashboard/dashboard').then((module) => module.Dashboard),
+    canActivate: [authGrd],
+  },
   {
     path: 'devices',
     loadComponent: () => import('./features/devices/devices').then((module) => module.Devices),
@@ -24,12 +21,41 @@ export const routes: Routes = [
     loadComponent: () => import('./features/location/location').then((module) => module.Location),
     canActivate: [authGrd],
   },
-  { path: 'clients', component: Clients, canActivate: [authGrd, superAdminGrd] },
-  { path: 'licences', component: Licences, canActivate: [authGrd] },
-  { path: 'settings', component: Settings, canActivate: [authGrd] },
-  { path: 'apps', component: Apps , canActivate: [authGrd]},
-  { path: 'profils', component: Profils, canActivate: [authGrd] },
-  { path: 'logs', component: Logs, canActivate: [authGrd] },
+  {
+    path: 'clients',
+    loadComponent: () => import('./features/clients/clients').then((module) => module.Clients),
+    canActivate: [authGrd, superAdminGrd],
+  },
+  {
+    path: 'licences',
+    loadComponent: () => import('./features/licences/licences').then((module) => module.Licences),
+    canActivate: [authGrd],
+  },
+  {
+    path: 'settings',
+    loadComponent: () => import('./features/settings/settings').then((module) => module.Settings),
+    canActivate: [authGrd],
+  },
+  {
+    path: 'users',
+    loadComponent: () => import('./features/users/users').then((module) => module.Users),
+    canActivate: [authGrd],
+  },
+  {
+    path: 'apps',
+    loadComponent: () => import('./features/apps/apps').then((module) => module.Apps),
+    canActivate: [authGrd],
+  },
+  {
+    path: 'profils',
+    loadComponent: () => import('./features/profils/profils').then((module) => module.Profils),
+    canActivate: [authGrd],
+  },
+  {
+    path: 'logs',
+    loadComponent: () => import('./features/logs/logs').then((module) => module.Logs),
+    canActivate: [authGrd],
+  },
   {
     path: 'alerts',
     loadComponent: () => import('./features/alerts/alerts').then((m) => m.AlertsComponent),

@@ -73,6 +73,12 @@ export class TermService {
     });
   }
 
+  installApp(id: number, appId: number): Observable<ApiResponse<DeviceCommand>> {
+    return this.http.post<ApiResponse<DeviceCommand>>(`${this.apiUrl}/${id}/install-app`, {
+      app_id: appId,
+    });
+  }
+
   getLocationHistory(id: number, hours: number = 24): Observable<ApiResponse<{lat: number, lng: number, recorded_at: string}[]>> {
     const params = new HttpParams().set('hours', hours.toString());
     return this.http.get<ApiResponse<{lat: number, lng: number, recorded_at: string}[]>>(`${this.apiUrl}/${id}/history`, { params });

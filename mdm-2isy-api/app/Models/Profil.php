@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Profil extends Model
 {
     use HasFactory;
-    protected $fillable = ['nom', 'kiosk', 'app_kiosk', 'kiosk_apps', 'no_cam', 'no_usb', 'no_bt', 'no_wifi', 'no_data', 'no_airplane', 'pin_fort', 'blacklist_apps', 'whitelist_apps'];
+    protected $fillable = ['organization_id', 'nom', 'kiosk', 'app_kiosk', 'kiosk_apps', 'no_cam', 'no_usb', 'no_bt', 'no_wifi', 'no_data', 'no_airplane', 'pin_fort', 'blacklist_apps', 'whitelist_apps'];
 
     protected $casts = [
         'blacklist_apps' => 'array',
@@ -27,5 +28,10 @@ class Profil extends Model
     public function terminals()
     {
         return $this->hasMany(Terminal::class);
+    }
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
     }
 }

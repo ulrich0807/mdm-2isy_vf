@@ -640,17 +640,20 @@ export class Devices implements OnInit {
       return;
     }
 
-    this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal)] = true;
+    const terminal = this.uninstallTerminal;
+    const commandKey = this.terminalCommandKey(terminal);
+    this.commandSubmitting[commandKey] = true;
 
-    this.termSvc.uninstallApp(this.uninstallTerminal!.id, { packageName: this.uninstallPackage.trim() }).subscribe({
+    this.termSvc.uninstallApp(terminal.id, { packageName: this.uninstallPackage.trim() }).subscribe({
       next: () => {
-        this.setCommandFeedback(this.uninstallTerminal!, 'success', "Commande de désinstallation mise en file.");
+        this.commandSubmitting[commandKey] = false;
+        this.setCommandFeedback(terminal, 'success', "Commande de désinstallation mise en file.");
         this.fermerModalUninstall();
       },
       error: (err: any) => {
         const msg = err.error?.message || err.message || 'Erreur inconnue';
         this.uninstallError = msg;
-        this.commandSubmitting[this.terminalCommandKey(this.uninstallTerminal!)] = false;
+        this.commandSubmitting[commandKey] = false;
       }
     });
   }

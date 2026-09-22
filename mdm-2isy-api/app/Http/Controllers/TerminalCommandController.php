@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\DeviceCommandException;
 use App\Models\DeviceCommand;
+use App\Models\App;
 use App\Models\Terminal;
 use App\Models\User;
 use App\Services\DeviceCommandService;
@@ -12,6 +13,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -100,7 +102,29 @@ class TerminalCommandController extends Controller
         $actor = $this->administrator($request);
         $device = $this->accessibleTerminalById($actor, $id);
 
-        $request->merge(['type' => 'install_app']);
+        $data = $request->validate(['app_id' => ['required', 'integer']]);
+        $app = App::query()
+            ->where('organization_id', $device->organization_id)
+            ->where('type', 'blanche')
+            ->findOrFail($data['app_id']);
+
+        if (! $app->chemin_apk) {
+            throw ValidationException::withMessages([
+                'app_id' => "Aucun fichier APK n'est disponible pour cette application.",
+            ]);
+        }
+
+        $request->replace([
+            'type' => 'install_app',
+            'payload' => [
+                'url' => URL::temporarySignedRoute(
+                    'apps.download',
+                    now()->addMinutes(65),
+                    ['app' => $app->id],
+                ),
+                'packageName' => $app->pkg,
+            ],
+        ]);
 
         return $this->queue($request, $device, $actor, $commands, 'install_app');
     }
@@ -126,7 +150,11 @@ class TerminalCommandController extends Controller
         ?string $forcedType = null,
         bool $idempotencyKeyRequired = false,
     ): JsonResponse {
-        if (!$terminal->lic || $terminal->lic->statut !== 'Active') {
+        if (
+            !$terminal->lic
+            || $terminal->lic->statut !== 'Active'
+            || $terminal->lic->exp_le?->isPast()
+        ) {
             throw ValidationException::withMessages([
                 'terminal' => 'Le terminal doit avoir une licence active pour recevoir des commandes.',
             ]);
@@ -167,6 +195,10 @@ class TerminalCommandController extends Controller
 
         $payload = $this->validatedPayload($data['type'], $data['payload'] ?? []);
 
+        if ($data['type'] === DeviceCommand::TYPE_WIPE && ! in_array($actor->role, ['admin', 'super_admin'], true)) {
+            throw new AuthorizationException("L'effacement est réservé aux administrateurs.");
+        }
+
         if ($data['type'] === 'wipe') {
             $this->validateWipe($terminal, $actor, $data);
         }
@@ -197,6 +229,7 @@ class TerminalCommandController extends Controller
 
         if (!$replayed) {
             \App\Models\Log::create([
+                'organization_id' => $terminal->organization_id,
                 'usr' => $actor->name . ' (' . ucfirst($actor->role) . ')',
                 'act' => 'Commande ' . ucfirst($data['type']) . ' envoyée',
                 'cible' => 'Terminal ' . ($terminal->livreur ?: $terminal->modele ?: $terminal->id),
@@ -278,7 +311,7 @@ class TerminalCommandController extends Controller
     {
         $user = $request->user();
 
-        if (! $user instanceof User || ! in_array($user->role, ['admin', 'super_admin'], true)) {
+        if (! $user instanceof User || ! in_array($user->role, ['operator', 'admin', 'super_admin'], true)) {
             throw new AuthorizationException('Cette action est réservée aux administrateurs.');
         }
 

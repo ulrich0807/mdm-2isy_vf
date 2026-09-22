@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertController;
+use App\Http\Controllers\ApplicationDeploymentController;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\AuthCtrl;
 use App\Http\Controllers\DeviceCommandController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\EnrollmentTokenController;
 use App\Http\Controllers\LicController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrganizationUserController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\TerminalCommandController;
 use App\Http\Controllers\TerminalController;
@@ -26,6 +28,11 @@ Route::post('/auth/in', [AuthCtrl::class, 'in'])->middleware('throttle:5,1');
 Route::get('/ping', function () {
     return response()->json(['success' => true, 'message' => 'pong']);
 });
+
+Route::get('/v1/apps/{app}/download', [AppController::class, 'download'])
+    ->middleware(['signed', 'throttle:300,1'])
+    ->whereNumber('app')
+    ->name('apps.download');
 
 Route::post('/v1/device/enroll', [DeviceEnrollmentController::class, 'store'])
     ->middleware('throttle:10,1')
@@ -53,24 +60,27 @@ Route::middleware('device.auth')
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/organizations', [OrganizationController::class, 'index']);
-    Route::post('/organizations', [OrganizationController::class, 'store']);
+    Route::post('/organizations', [OrganizationController::class, 'store'])->middleware('role:super_admin');
 
     Route::get('/device-groups', [DeviceGroupController::class, 'index']);
-    Route::post('/device-groups', [DeviceGroupController::class, 'store']);
+    Route::post('/device-groups', [DeviceGroupController::class, 'store'])->middleware('role:admin,super_admin');
     Route::delete('/device-groups/{id}', [DeviceGroupController::class, 'destroy'])
+        ->middleware('role:admin,super_admin')
         ->whereNumber('id');
 
     Route::get('/device-enrollments', [EnrollmentTokenController::class, 'index']);
-    Route::post('/device-enrollments', [EnrollmentTokenController::class, 'store']);
+    Route::post('/device-enrollments', [EnrollmentTokenController::class, 'store'])->middleware('role:admin,super_admin');
     Route::delete('/device-enrollments/{token}', [EnrollmentTokenController::class, 'destroy'])
+        ->middleware('role:admin,super_admin')
         ->whereUuid('token');
 });
 
 // Alias versionnés conservés pour les premiers clients de l'API.
 Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
     Route::get('/enrollment-tokens', [EnrollmentTokenController::class, 'index']);
-    Route::post('/enrollment-tokens', [EnrollmentTokenController::class, 'store']);
+    Route::post('/enrollment-tokens', [EnrollmentTokenController::class, 'store'])->middleware('role:admin,super_admin');
     Route::delete('/enrollment-tokens/{token}', [EnrollmentTokenController::class, 'destroy'])
+        ->middleware('role:admin,super_admin')
         ->whereUuid('token');
 });
 
@@ -82,52 +92,60 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Gestion Terminaux
     Route::get('/terminals', [TerminalController::class, 'index']);
-    Route::post('/terminals', [TerminalController::class, 'store']);
+    Route::post('/terminals', [TerminalController::class, 'store'])->middleware('role:admin,super_admin');
     Route::get('/terminals/{terminal}/commands', [TerminalCommandController::class, 'index'])
         ->whereUuid('terminal');
     Route::post('/terminals/{terminal}/commands', [TerminalCommandController::class, 'store'])
+        ->middleware('role:operator,admin,super_admin')
         ->whereUuid('terminal');
     Route::get('/terminals/{id}', [TerminalController::class, 'show'])->whereNumber('id');
     Route::get('/terminals/{id}/history', [TerminalController::class, 'history'])->whereNumber('id');
-    Route::delete('/terminals/{id}', [TerminalController::class, 'destroy'])->whereNumber('id');
-    Route::put('/terminals/{id}/group', [TerminalController::class, 'updateGroup'])->whereNumber('id');
-    Route::put('/terminals/{id}/livreur', [TerminalController::class, 'updateLivreur'])->whereNumber('id');
-    Route::put('/terminals/{id}/profil', [TerminalController::class, 'updateProfil'])->whereNumber('id');
+    Route::delete('/terminals/{id}', [TerminalController::class, 'destroy'])->middleware('role:admin,super_admin')->whereNumber('id');
+    Route::put('/terminals/{id}/group', [TerminalController::class, 'updateGroup'])->middleware('role:admin,super_admin')->whereNumber('id');
+    Route::put('/terminals/{id}/livreur', [TerminalController::class, 'updateLivreur'])->middleware('role:admin,super_admin')->whereNumber('id');
+    Route::put('/terminals/{id}/profil', [TerminalController::class, 'updateProfil'])->middleware('role:admin,super_admin')->whereNumber('id');
     Route::post('/terminals/{id}/revoke-credential', [TerminalController::class, 'revokeCredential'])
+        ->middleware('role:admin,super_admin')
         ->whereNumber('id');
-    Route::post('/terminals/{id}/locate', [TerminalCommandController::class, 'locate'])->whereNumber('id');
-    Route::post('/terminals/{id}/lock', [TerminalCommandController::class, 'lock'])->whereNumber('id');
-    Route::post('/terminals/{id}/wipe', [TerminalCommandController::class, 'wipe'])->whereNumber('id');
-    Route::post('/terminals/{id}/install-app', [TerminalCommandController::class, 'install'])->whereNumber('id');
-    Route::post('/terminals/{id}/uninstall-app', [TerminalCommandController::class, 'uninstallApp'])->whereNumber('id');
+    Route::post('/terminals/{id}/locate', [TerminalCommandController::class, 'locate'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
+    Route::post('/terminals/{id}/lock', [TerminalCommandController::class, 'lock'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
+    Route::post('/terminals/{id}/wipe', [TerminalCommandController::class, 'wipe'])->middleware('role:admin,super_admin')->whereNumber('id');
+    Route::post('/terminals/{id}/install-app', [TerminalCommandController::class, 'install'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
+    Route::post('/terminals/{id}/uninstall-app', [TerminalCommandController::class, 'uninstallApp'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
 
     // Gestion Licences
     Route::get('/lics', [LicController::class, 'index']);
     Route::post('/lics', [LicController::class, 'store']); // Générer
-    Route::post('/lics/{id}/actv', [LicController::class, 'actv']); // Activer
-    Route::post('/lics/{id}/assign', [LicController::class, 'assign']);
+    Route::post('/lics/{id}/actv', [LicController::class, 'actv'])->middleware('role:admin,super_admin');
+    Route::post('/lics/{id}/assign', [LicController::class, 'assign'])->middleware('role:admin,super_admin');
     // Route pour la création d'un client
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     // Routes pour le profil (Paramètres)
     Route::put('/users/prof', [UserController::class, 'updProf']);
     Route::put('/users/pwd', [UserController::class, 'updPwd']);
+    Route::get('/organization-users', [OrganizationUserController::class, 'index'])->middleware('role:admin,super_admin');
+    Route::post('/organization-users', [OrganizationUserController::class, 'store'])->middleware('role:admin,super_admin');
+    Route::delete('/organization-users/{id}', [OrganizationUserController::class, 'destroy'])->middleware('role:admin,super_admin')->whereNumber('id');
 
     // --- GESTION DES APPLICATIONS (MAM) ---
     Route::get('/apps', [AppController::class, 'index']);
-    Route::post('/apps', [AppController::class, 'store']);
-    Route::delete('/apps/{id}', [AppController::class, 'destroy']);
+    Route::post('/apps', [AppController::class, 'store'])->middleware('role:admin,super_admin');
+    Route::post('/apps/{id}/update', [AppController::class, 'update'])->middleware('role:admin,super_admin')->whereNumber('id');
+    Route::post('/apps/{id}/deploy', [ApplicationDeploymentController::class, 'store'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
+    Route::delete('/apps/{id}', [AppController::class, 'destroy'])->middleware('role:admin,super_admin');
 
     // --- GESTION DES PROFILS DE SÉCURITÉ ---
     Route::get('/profils', [ProfilController::class, 'index']);
-    Route::post('/profils', [ProfilController::class, 'store']);
-    Route::delete('/profils/{id}', [ProfilController::class, 'destroy']);
+    Route::post('/profils', [ProfilController::class, 'store'])->middleware('role:admin,super_admin');
+    Route::put('/profils/{id}', [ProfilController::class, 'update'])->middleware('role:admin,super_admin')->whereNumber('id');
+    Route::delete('/profils/{id}', [ProfilController::class, 'destroy'])->middleware('role:admin,super_admin');
 
     // --- JOURNAL D'AUDIT (LOGS) ---
     Route::get('/logs', [LogController::class, 'index']);
 
     // --- CENTRE D'ALERTES ---
     Route::get('/alerts', [AlertController::class, 'index']);
-    Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve'])->whereNumber('id');
+    Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
 
 });

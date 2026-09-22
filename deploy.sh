@@ -1,23 +1,28 @@
-#!/bin/bash
-echo "DÈmarrage du dÈploiement..."
-cd /var/www/mdm-2isy_vf
-git pull origin master
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Mise ‡ jour de l'API (Laravel)..."
-cd mdm-2isy-api
-composer install --no-interaction --optimize-autoloader
+project_dir="/var/www/mdm-2isy_vf"
+
+echo "D√©marrage du d√©ploiement..."
+cd "$project_dir"
+git pull --ff-only origin master
+
+echo "Mise √† jour de l'API Laravel..."
+cd "$project_dir/mdm-2isy-api"
+composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 php artisan migrate --force
+php artisan storage:link
 php artisan optimize:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "Mise ‡ jour du Frontend (Angular)..."
-cd ../mdm-2isy-front
-npm install
+echo "Construction du frontend Angular..."
+cd "$project_dir/mdm-2isy-front"
+npm ci
 npm run build -- --configuration production
 
-echo "Mise ‡ jour des permissions..."
-chown -R www-data:www-data /var/www/mdm-2isy_vf
+echo "Mise √† jour des permissions d'ex√©cution Laravel..."
+chown -R www-data:www-data "$project_dir/mdm-2isy-api/storage" "$project_dir/mdm-2isy-api/bootstrap/cache"
 
-echo "DÈploiement terminÈ avec succËs !"
+echo "D√©ploiement termin√©. V√©rifiez que 'php artisan schedule:run' est ex√©cut√© chaque minute par cron ou systemd."

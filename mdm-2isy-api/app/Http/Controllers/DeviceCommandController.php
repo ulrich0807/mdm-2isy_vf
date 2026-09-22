@@ -189,15 +189,31 @@ class DeviceCommandController extends Controller
             return;
         }
 
-        if (($result['wipe_started'] ?? null) !== true) {
-            throw ValidationException::withMessages([
-                'result.wipe_started' => 'Une commande wipe réussie doit confirmer wipe_started=true.',
-            ]);
+        if ($command->type === DeviceCommand::TYPE_WIPE) {
+            if (($result['wipe_started'] ?? null) !== true) {
+                throw ValidationException::withMessages([
+                    'result.wipe_started' => 'Une commande wipe réussie doit confirmer wipe_started=true.',
+                ]);
+            }
+
+            if (array_key_exists('locked', $result)) {
+                throw ValidationException::withMessages([
+                    'result.locked' => 'Cette preuve est réservée aux commandes lock.',
+                ]);
+            }
+
+            return;
         }
 
-        if (array_key_exists('locked', $result)) {
+        if (
+            in_array($command->type, [
+                DeviceCommand::TYPE_INSTALL_APP,
+                DeviceCommand::TYPE_UNINSTALL_APP,
+            ], true)
+            && (array_key_exists('locked', $result) || array_key_exists('wipe_started', $result))
+        ) {
             throw ValidationException::withMessages([
-                'result.locked' => 'Cette preuve est réservée aux commandes lock.',
+                'result' => "Le résultat d'une commande applicative contient une preuve incompatible.",
             ]);
         }
     }

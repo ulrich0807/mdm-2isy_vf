@@ -153,6 +153,8 @@ class DeviceCommandExecutorTest {
         override fun clearUserRestriction(restriction: String) = Unit
         override fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean = true
         override fun resetPassword(password: String, flags: Int): Boolean = true
+        override fun setPasswordQuality(quality: Int) = Unit
+        override fun setPasswordMinimumLength(length: Int) = Unit
         override fun setLocationEnabled(enabled: Boolean) = Unit
         override fun setStatusBarDisabled(disabled: Boolean) = Unit
         override fun getAllInstalledPackages(): List<String> = emptyList()

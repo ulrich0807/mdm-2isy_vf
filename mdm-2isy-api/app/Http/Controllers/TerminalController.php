@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DeviceGroup;
+use App\Models\Profil;
 use App\Models\Terminal;
 use App\Support\OrganizationAccess;
 use Illuminate\Http\Request;
@@ -131,7 +132,14 @@ class TerminalController extends Controller
             'profil_id' => ['nullable', 'integer', 'exists:profils,id'],
         ]);
 
-        $terminal->update(['profil_id' => $data['profil_id']]);
+        $profileId = $data['profil_id'] ?? null;
+        if ($profileId !== null) {
+            Profil::query()
+                ->where('organization_id', $terminal->organization_id)
+                ->findOrFail($profileId);
+        }
+
+        $terminal->update(['profil_id' => $profileId]);
 
         if ($terminal->fcm_token) {
             app(\App\Services\FcmService::class)->sendCommand($terminal->fcm_token, 'sync_policy', []);
@@ -160,21 +168,6 @@ class TerminalController extends Controller
             'success' => true,
             'message' => "L'identité de l'appareil a été révoquée.",
         ]);
-    }
-
-    public function locate(Request $request, int $id)
-    {
-        return $this->commandUnavailable($this->accessibleTerminal($request, $id));
-    }
-
-    public function lock(Request $request, int $id)
-    {
-        return $this->commandUnavailable($this->accessibleTerminal($request, $id));
-    }
-
-    public function wipe(Request $request, int $id)
-    {
-        return $this->commandUnavailable($this->accessibleTerminal($request, $id));
     }
 
     public function destroy(Request $request, int $id)
@@ -225,12 +218,4 @@ class TerminalController extends Controller
             ->findOrFail((int) $groupId);
     }
 
-    private function commandUnavailable(Terminal $terminal)
-    {
-        return response()->json([
-            'success' => false,
-            'message' => "Le moteur de commandes Android n'est pas encore disponible.",
-            'target' => $terminal->public_id,
-        ], 501);
-    }
 }

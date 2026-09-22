@@ -36,6 +36,11 @@ class MigrationTest extends TestCase
         }
 
         $this->assertTrue(Schema::hasColumns('users', ['organization_id']));
+        $this->assertTrue(Schema::hasColumns('alerts', [
+            'organization_id',
+            'severity',
+            'source_key',
+        ]));
         $this->assertTrue(Schema::hasColumns('terminals', [
             'organization_id',
             'device_group_id',

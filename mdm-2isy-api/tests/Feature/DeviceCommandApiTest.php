@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\DeviceCommand;
 use App\Models\DeviceCredential;
+use App\Models\Lic;
 use App\Models\Organization;
 use App\Models\Terminal;
 use App\Models\User;
@@ -406,6 +407,65 @@ class DeviceCommandApiTest extends TestCase
         ]);
     }
 
+    public function test_successful_application_results_do_not_require_a_wipe_proof(): void
+    {
+        $organization = $this->organization('commands-app-results');
+        [$terminal, $deviceToken] = $this->terminalWithCredential(
+            $organization,
+            'application-result-device-token',
+        );
+        Sanctum::actingAs($this->user($organization));
+        $url = "/api/terminals/{$terminal->public_id}/commands";
+
+        $installPublicId = $this->withHeader('Idempotency-Key', 'install-result-command-0001')
+            ->postJson($url, [
+                'type' => 'install_app',
+                'payload' => [
+                    'url' => 'https://mdm.example.test/apps/business.apk',
+                    'packageName' => 'com.example.business',
+                ],
+            ])
+            ->assertCreated()
+            ->json('data.public_id');
+        $uninstallPublicId = $this->withHeader('Idempotency-Key', 'uninstall-result-command-0001')
+            ->postJson($url, [
+                'type' => 'uninstall_app',
+                'payload' => ['packageName' => 'com.example.legacy'],
+            ])
+            ->assertCreated()
+            ->json('data.public_id');
+
+        $this->withToken($deviceToken)
+            ->getJson('/api/v1/device/commands')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        foreach ([
+            $installPublicId => 'Installation de l’application lancée avec succès.',
+            $uninstallPublicId => 'Désinstallation de l’application lancée avec succès.',
+        ] as $publicId => $message) {
+            $this->withToken($deviceToken)
+                ->postJson("/api/v1/device/commands/{$publicId}/ack")
+                ->assertOk();
+            $this->withToken($deviceToken)
+                ->postJson("/api/v1/device/commands/{$publicId}/result", [
+                    'status' => 'succeeded',
+                    'result' => [
+                        'message' => $message,
+                        'executed_at' => now()->toIso8601String(),
+                    ],
+                ])
+                ->assertOk()
+                ->assertJsonPath('data.status', 'succeeded');
+        }
+
+        $this->assertDatabaseCount('device_commands', 2);
+        $this->assertSame(
+            2,
+            DeviceCommand::query()->where('status', DeviceCommand::STATUS_SUCCEEDED)->count(),
+        );
+    }
+
     public function test_successful_lock_and_wipe_apply_terminal_security_effects(): void
     {
         $organization = $this->organization('commands-effects');
@@ -577,6 +637,7 @@ class DeviceCommandApiTest extends TestCase
             'statut' => 'Hors ligne',
             'enrollment_status' => 'pending',
         ]);
+        $this->activateLicenseFor($pendingTerminal);
         [$revokedTerminal, , $revokedCredential] = $this->terminalWithCredential(
             $organization,
             'revoked-command-token',
@@ -688,7 +749,18 @@ class DeviceCommandApiTest extends TestCase
             'terminal_id' => $terminal->id,
             'token_hash' => hash('sha256', $plainToken),
         ]);
+        $this->activateLicenseFor($terminal);
 
         return [$terminal, $plainToken, $credential];
+    }
+
+    private function activateLicenseFor(Terminal $terminal): void
+    {
+        Lic::query()->create([
+            'cle' => 'MDM-TEST-'.str_pad((string) $terminal->id, 6, '0', STR_PAD_LEFT),
+            'term_id' => $terminal->id,
+            'statut' => 'Active',
+            'exp_le' => now()->addYear(),
+        ]);
     }
 }

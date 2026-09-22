@@ -109,7 +109,7 @@ export class Auth {
     this.sessionSubject.next(session);
   }
 
-  private clearSession(): void {
+  clearSession(): void {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(Auth.sessionKey);
     }

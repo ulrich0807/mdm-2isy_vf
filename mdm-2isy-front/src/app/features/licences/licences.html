@@ -5,10 +5,15 @@
       <h3 class="fw-bold m-0 text-dark">Gestion des Licences</h3>
       <p class="text-muted small m-0">Suivi de la facturation et des accès MDM</p>
     </div>
-    <!-- CENSURÉ POUR LE CLIENT : *ngIf="isSuperAdmin" -->
-    <button *ngIf="isSuperAdmin" (click)="genererLic()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
-      + Générer une Clé
-    </button>
+    <div *ngIf="isSuperAdmin" class="d-flex gap-2 align-items-center">
+      <select [(ngModel)]="selectedOrganizationId" (ngModelChange)="onOrganizationChange()" class="form-select">
+        <option [ngValue]="null">Toutes les organisations</option>
+        <option *ngFor="let organization of organizations" [ngValue]="organization.id">{{ organization.name }}</option>
+      </select>
+      <button (click)="genererLic()" [disabled]="!selectedOrganizationId" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm text-nowrap" style="background-color: #0077ff;">
+        + Générer une Clé
+      </button>
+    </div>
   </div>
 <!-- SECTION STATISTIQUES -->
   <div class="row g-3 mb-4">

@@ -47,6 +47,8 @@ interface DevicePolicyGateway {
     fun clearUserRestriction(restriction: String)
     fun setApplicationHidden(packageName: String, hidden: Boolean): Boolean
     fun resetPassword(password: String, flags: Int): Boolean
+    fun setPasswordQuality(quality: Int)
+    fun setPasswordMinimumLength(length: Int)
     
     fun setLocationEnabled(enabled: Boolean)
     fun setStatusBarDisabled(disabled: Boolean)
@@ -110,6 +112,14 @@ class AndroidDevicePolicyGateway(
 
     override fun resetPassword(password: String, flags: Int): Boolean {
         return policyManager.resetPassword(password, flags)
+    }
+
+    override fun setPasswordQuality(quality: Int) {
+        policyManager.setPasswordQuality(adminComponent, quality)
+    }
+
+    override fun setPasswordMinimumLength(length: Int) {
+        policyManager.setPasswordMinimumLength(adminComponent, length)
     }
 
     override fun setLocationEnabled(enabled: Boolean) {
@@ -244,10 +254,11 @@ class DeviceAdminController(
                 gateway.setStatusBarDisabled(false)
             }
             
-            if (policy.pinFort) {
-                // PIN setup requires more interaction, but we can set quality
-                // gateway.policyManager.setPasswordQuality(adminComponent, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
-            }
+            gateway.setPasswordQuality(
+                if (policy.pinFort) DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX
+                else DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED,
+            )
+            gateway.setPasswordMinimumLength(if (policy.pinFort) 6 else 0)
             
             if (policy.kiosk) {
                 if (policy.kioskApps.isNotEmpty()) {
@@ -262,24 +273,13 @@ class DeviceAdminController(
                 gateway.setLockTaskPackages(emptyArray())
             }
             
-            // Process blacklisted apps (these are explicitly hidden regardless of being system or user apps)
-            for (pkg in policy.blacklistApps) {
-                gateway.setApplicationHidden(pkg, true)
-            }
-            
-            // Process whitelist (hides any third-party app not in the whitelist)
-            if (policy.whitelistApps.isNotEmpty()) {
-                val allUserApps = gateway.getAllInstalledPackages()
-                for (pkg in allUserApps) {
-                    // Don't hide our own agent
-                    if (pkg == "com.mdm2isy.agent") continue
-                    
-                    if (!policy.whitelistApps.contains(pkg)) {
-                        gateway.setApplicationHidden(pkg, true)
-                    } else {
-                        gateway.setApplicationHidden(pkg, false)
-                    }
-                }
+            // Recalculate every application state so removing an old blacklist or
+            // disabling a whitelist restores applications that were hidden before.
+            for (pkg in gateway.getAllInstalledPackages()) {
+                if (pkg == "com.mdm2isy.agent") continue
+                val hidden = policy.blacklistApps.contains(pkg) ||
+                    (policy.whitelistApps.isNotEmpty() && !policy.whitelistApps.contains(pkg))
+                gateway.setApplicationHidden(pkg, hidden)
             }
         }
     }

@@ -47,6 +47,31 @@ class Organization extends Model
         return $this->hasMany(DeviceEnrollmentToken::class);
     }
 
+    public function apps(): HasMany
+    {
+        return $this->hasMany(App::class);
+    }
+
+    public function profils(): HasMany
+    {
+        return $this->hasMany(Profil::class);
+    }
+
+    public function licences(): HasMany
+    {
+        return $this->hasMany(Lic::class);
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(Log::class);
+    }
+
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class);
+    }
+
     protected function casts(): array
     {
         return [
