@@ -45,7 +45,7 @@ button, input, select, textarea { font: inherit; }
   box-shadow: 0 20px 55px rgba(15, 23, 42, .10);
 }
 
-.app-sidebar { flex: 0 0 264px; width: 264px; z-index: 1040; }
+.app-sidebar { flex: 0 0 278px; width: 278px; z-index: 1040; }
 .app-main { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .app-content { flex: 1; min-height: 0; overflow: auto; padding: 28px; }
 .mobile-scrim { display: none; }
@@ -62,14 +62,14 @@ button, input, select, textarea { font: inherit; }
   background: rgba(255,255,255,.15); color: white; font-weight: 900; letter-spacing: -.04em;
   box-shadow: inset 0 1px rgba(255,255,255,.2);
 }
-.brand-name { color: white; font-size: 1rem; font-weight: 800; letter-spacing: .02em; }
+.brand-name { color: white; font-size: 1.08rem; font-weight: 800; letter-spacing: .02em; }
 .brand-caption { color: rgba(255,255,255,.58); font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; }
 .user-card { border: 1px solid rgba(255,255,255,.12); border-radius: 18px; background: rgba(255,255,255,.09); }
 .user-avatar { width: 43px; height: 43px; flex: 0 0 43px; border-radius: 14px; background: white; color: var(--mdm-primary-dark); }
 .user-card small { font-size: .7rem; }
-.sidebar-menu .nav-link { min-height: 44px; border: 1px solid transparent; }
-.sidebar-menu .nav-icon { display: grid; place-items: center; width: 25px; margin-right: 12px; font-size: 1.05rem; }
-.sidebar-menu .nav-label { font-size: .84rem; font-weight: 600; }
+.sidebar-menu .nav-link { min-height: 48px; border: 1px solid transparent; }
+.sidebar-menu .nav-icon { display: grid; place-items: center; width: 27px; margin-right: 12px; font-size: 1.12rem; }
+.sidebar-menu .nav-label { font-size: .94rem; font-weight: 650; letter-spacing: .005em; }
 .sidebar-menu .nav-link.active-menu { border-color: rgba(255,255,255,.14); border-left: 0 !important; box-shadow: 0 8px 22px rgba(5, 22, 60, .16); }
 .logout-button { background: rgba(255,255,255,.1); }
 .logout-button:hover { background: rgba(255,255,255,.17); }
@@ -290,13 +290,27 @@ button, input, select, textarea { font: inherit; }
 .logout-link:hover {
   color: #ffffff !important;
 }
-/* Cache la barre de défilement pour un design plus propre */
+/* Barre discrète : elle n'apparaît que lorsque le menu dépasse la hauteur disponible. */
 .sidebar-menu::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+  display: block;
+}
+.sidebar-menu::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+}
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.34);
+  border-radius: 999px;
+}
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.55);
 }
 .sidebar-menu {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  padding-right: .7rem !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.34) rgba(255, 255, 255, 0.04);
+  overscroll-behavior: contain;
 }
 
 /* Style propre pour l'élément actif du menu */
