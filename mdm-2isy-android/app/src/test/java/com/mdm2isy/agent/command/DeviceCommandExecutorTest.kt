@@ -144,6 +144,20 @@ class DeviceCommandExecutorTest {
     }
 
     @Test
+    fun `wifi policy blocks configuration and state changes`() {
+        val gateway = FakePolicyGateway(adminActive = true, deviceOwner = true)
+
+        val result = DeviceAdminController(gateway).applyPolicy(SecurityPolicy(noWifi = true))
+
+        assertTrue(result is DeviceAdminOperationResult.Completed)
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_CONFIG_WIFI))
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_CHANGE_WIFI_STATE))
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_ADD_WIFI_CONFIG))
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_WIFI_DIRECT))
+        assertTrue(gateway.addedRestrictions.contains(android.os.UserManager.DISALLOW_WIFI_TETHERING))
+    }
+
+    @Test
     fun `OEM status bar failure does not cancel blacklist enforcement`() {
         val gateway = FakePolicyGateway(
             adminActive = true,
@@ -223,8 +237,9 @@ class DeviceCommandExecutorTest {
         override fun setPasswordQuality(quality: Int) = Unit
         override fun setPasswordMinimumLength(length: Int) = Unit
         override fun setLocationEnabled(enabled: Boolean) = Unit
-        override fun setStatusBarDisabled(disabled: Boolean) {
+        override fun setStatusBarDisabled(disabled: Boolean): Boolean {
             if (failStatusBarUpdate) error("OEM rejected status bar policy")
+            return true
         }
         override fun getAllInstalledPackages(): List<String> = emptyList()
     }

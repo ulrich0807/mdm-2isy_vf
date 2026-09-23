@@ -190,8 +190,16 @@ class MdmAgentService : Service() {
                 running = true,
                 message = "Serveur temporairement limité ; nouvel essai dans ${delay}s.",
             )
-        } catch (_: MdmTransportException) {
-            scheduleNetworkRetry("Serveur MDM injoignable.")
+        } catch (exception: MdmTransportException) {
+            val cause = exception.cause
+            val diagnostic = listOfNotNull(
+                cause?.javaClass?.simpleName,
+                cause?.message?.take(180),
+            ).joinToString(": ")
+            scheduleNetworkRetry(
+                if (diagnostic.isBlank()) "Serveur MDM injoignable."
+                else "Serveur MDM injoignable ($diagnostic).",
+            )
         } catch (exception: MdmHttpException) {
             scheduleNetworkRetry(
                 "Erreur serveur HTTP ${exception.status}${exception.reason?.let { " ($it)" } ?: ""}.",

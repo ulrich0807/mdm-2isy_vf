@@ -51,7 +51,7 @@ interface DevicePolicyGateway {
     fun setPasswordMinimumLength(length: Int)
     
     fun setLocationEnabled(enabled: Boolean)
-    fun setStatusBarDisabled(disabled: Boolean)
+    fun setStatusBarDisabled(disabled: Boolean): Boolean
     fun getAllInstalledPackages(): List<String>
 }
 
@@ -135,9 +135,8 @@ class AndroidDevicePolicyGateway(
         }
     }
 
-    override fun setStatusBarDisabled(disabled: Boolean) {
+    override fun setStatusBarDisabled(disabled: Boolean): Boolean =
         policyManager.setStatusBarDisabled(adminComponent, disabled)
-    }
 }
 
 /**
@@ -241,9 +240,15 @@ class DeviceAdminController(
                 safelyApplyPolicy {
                     gateway.addUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
                 }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_BLUETOOTH)
+                }
             } else {
                 safelyApplyPolicy {
                     gateway.clearUserRestriction(android.os.UserManager.DISALLOW_BLUETOOTH)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_BLUETOOTH)
                 }
             }
             
@@ -251,9 +256,33 @@ class DeviceAdminController(
                 safelyApplyPolicy {
                     gateway.addUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
                 }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_CHANGE_WIFI_STATE)
+                }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_ADD_WIFI_CONFIG)
+                }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_WIFI_DIRECT)
+                }
+                safelyApplyPolicy {
+                    gateway.addUserRestriction(android.os.UserManager.DISALLOW_WIFI_TETHERING)
+                }
             } else {
                 safelyApplyPolicy {
                     gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CONFIG_WIFI)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_CHANGE_WIFI_STATE)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_ADD_WIFI_CONFIG)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_WIFI_DIRECT)
+                }
+                safelyApplyPolicy {
+                    gateway.clearUserRestriction(android.os.UserManager.DISALLOW_WIFI_TETHERING)
                 }
             }
 
@@ -326,9 +355,16 @@ class DeviceAdminController(
             // This call is intentionally last and isolated: an OEM rejection must not
             // cancel camera, network, password, kiosk or application restrictions.
             runCatching {
-                gateway.setStatusBarDisabled(
+                val accepted = gateway.setStatusBarDisabled(
                     policy.noWifi || policy.noData || policy.noAirplane || policy.kiosk,
                 )
+                check(accepted) { "Android/OEM rejected the status-bar policy." }
+            }.onFailure { error ->
+                // android.util.Log is unavailable in local JVM tests. Logging is
+                // diagnostic only and must never make the full policy fail.
+                runCatching {
+                    android.util.Log.w("MdmPolicy", "Status-bar policy was not applied.", error)
+                }
             }
         }
     }
