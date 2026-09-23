@@ -104,7 +104,8 @@ class EnrollmentTokenController extends Controller
                 ],
                 'device_owner_qr_payload' => [
                     'android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME' => 'com.mdm2isy.agent/com.mdm2isy.agent.admin.MdmDeviceAdminReceiver',
-                    'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION' => url('/apk/mdm-agent.apk'),
+                    'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION' => url('/download/mdm-agent.apk'),
+                    'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM' => $this->agentPackageChecksum(),
                     'android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE' => [
                         'api_url' => url('/api/v1/device'),
                         'token' => $plainTextToken,
@@ -112,6 +113,15 @@ class EnrollmentTokenController extends Controller
                 ]
             ],
         ], Response::HTTP_CREATED);
+    }
+
+    private function agentPackageChecksum(): string
+    {
+        $apkPath = public_path('apk/mdm-agent.apk');
+
+        abort_unless(is_file($apkPath), Response::HTTP_SERVICE_UNAVAILABLE, 'APK agent indisponible.');
+
+        return rtrim(strtr(base64_encode(hash_file('sha256', $apkPath, true)), '+/', '-_'), '=');
     }
 
     public function destroy(Request $request, string $token): JsonResponse

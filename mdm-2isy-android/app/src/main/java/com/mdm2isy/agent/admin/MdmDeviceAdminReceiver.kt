@@ -15,7 +15,9 @@ class MdmDeviceAdminReceiver : DeviceAdminReceiver() {
     override fun onProfileProvisioningComplete(context: Context, intent: android.content.Intent) {
         val manager = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
         val componentName = componentName(context)
-        manager.setProfileName(componentName, "2ISY MDM")
+        // Some OEM ROMs reject setProfileName() for a fully-managed device.
+        // A cosmetic label must never abort the critical provisioning callback.
+        runCatching { manager.setProfileName(componentName, "2ISY MDM") }
 
         // Récupérer le bundle envoyé via le QR Code généré par l'API Laravel
         val bundle = intent.getParcelableExtra<android.os.PersistableBundle>(

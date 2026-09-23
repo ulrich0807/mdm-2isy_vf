@@ -44,9 +44,15 @@ class EnrollmentTokenApiTest extends TestCase
             ->assertJsonPath('data.enrollment_payload.token', $plainTextToken)
             ->assertJsonStructure(['data' => ['enrollment_payload' => ['api_url']]]);
         $this->assertSame(
-            url('/apk/mdm-agent.apk'),
+            url('/download/mdm-agent.apk'),
             $response->json('data.device_owner_qr_payload')[
                 'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION'
+            ],
+        );
+        $this->assertSame(
+            rtrim(strtr(base64_encode(hash_file('sha256', public_path('apk/mdm-agent.apk'), true)), '+/', '-_'), '='),
+            $response->json('data.device_owner_qr_payload')[
+                'android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM'
             ],
         );
 
