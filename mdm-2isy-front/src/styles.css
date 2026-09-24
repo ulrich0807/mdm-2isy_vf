@@ -358,7 +358,17 @@ button, input, select, textarea { font: inherit; }
 .fleet-stat-card { transition: transform .2s ease, box-shadow .2s ease; }
 .fleet-stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(15,23,42,.09) !important; }
 .fleet-stat-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 14px; font-weight: 900; }
+.enrollment-modal-backdrop { padding: clamp(76px, 10vh, 120px) 16px 24px; overflow-y: auto; }
+.enrollment-modal-backdrop > .card { max-height: calc(100dvh - 100px); overflow-y: auto; }
 .users-search { width: min(100%, 430px); }
+.login-contact-backdrop, .contact-detail-backdrop { z-index: 2000; background: rgba(15,23,42,.62); backdrop-filter: blur(6px); padding: clamp(32px, 7vh, 80px) 16px 24px; overflow-y: auto; }
+.login-contact-card { width: min(100%, 720px); }
+.contact-detail-card { width: min(100%, 680px); }
+.contact-filter { width: min(100%, 240px); }
+.contact-issue-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 420px; }
+.contact-meta { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; }
+.contact-meta small { color: #64748b; font-weight: 700; text-transform: uppercase; }
+.preserve-lines { white-space: pre-line; }
 
 @media (max-width: 1199.98px) {
   .app-content { padding: 22px; }
@@ -408,6 +418,7 @@ button, input, select, textarea { font: inherit; }
   .table td, .table th { padding-top: .85rem !important; padding-bottom: .85rem !important; }
 
   .position-fixed.top-0.start-0.w-100.h-100.d-flex { padding: 10px; align-items: flex-end !important; }
+  .position-fixed.enrollment-modal-backdrop { padding: 68px 10px 12px; align-items: flex-start !important; }
   .position-fixed.top-0.start-0.w-100.h-100.d-flex > .card {
     width: 100% !important; max-height: 92dvh; padding: 20px !important;
     border-radius: 24px 24px 14px 14px !important;

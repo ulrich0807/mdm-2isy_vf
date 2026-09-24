@@ -57,6 +57,7 @@ export class Devices implements OnInit {
   fStat = '';
   fGrp: number | null = null;
   lstMod: string[] = [];
+  fleetStats = { total: 0, online: 0, offline: 0, lowBattery: 0 };
 
   nouveauGroupe = '';
   creationGroupe = false;
@@ -183,6 +184,7 @@ export class Devices implements OnInit {
           ),
         );
         this.filtrer();
+        this.updateFleetStats();
         this.chargement = false;
         this.cdRef.detectChanges();
       },
@@ -190,6 +192,7 @@ export class Devices implements OnInit {
         this.contextError = this.apiError(err, 'Impossible de charger les terminaux.');
         this.terminaux = [];
         this.fTerms = [];
+        this.updateFleetStats();
         this.chargement = false;
         this.cdRef.detectChanges();
       },
@@ -925,11 +928,11 @@ export class Devices implements OnInit {
   }
 
   get onlineCount(): number {
-    return this.terminaux.filter((terminal) => this.terminalStatus(terminal) === 'En ligne').length;
+    return this.fleetStats.online;
   }
 
   get offlineCount(): number {
-    return this.terminaux.filter((terminal) => this.terminalStatus(terminal) === 'Hors ligne').length;
+    return this.fleetStats.offline;
   }
 
   get managedCount(): number {
@@ -937,10 +940,7 @@ export class Devices implements OnInit {
   }
 
   get lowBatteryCount(): number {
-    return this.terminaux.filter((terminal) => {
-      const battery = this.terminalBattery(terminal);
-      return battery !== null && battery <= 20;
-    }).length;
+    return this.fleetStats.lowBattery;
   }
 
   enrollmentGroupName(enrollment: DeviceEnrollment): string {
@@ -1109,8 +1109,24 @@ export class Devices implements OnInit {
     this.groupes = [];
     this.enrollments = [];
     this.lstMod = [];
+    this.updateFleetStats();
     this.chargement = false;
     this.resetCommandContext();
+  }
+
+  private updateFleetStats(): void {
+    this.fleetStats = this.terminaux.reduce(
+      (stats, terminal) => {
+        stats.total += 1;
+        const status = this.terminalStatus(terminal);
+        if (status === 'En ligne') stats.online += 1;
+        if (status === 'Hors ligne') stats.offline += 1;
+        const battery = this.terminalBattery(terminal);
+        if (battery !== null && battery <= 20) stats.lowBattery += 1;
+        return stats;
+      },
+      { total: 0, online: 0, offline: 0, lowBattery: 0 },
+    );
   }
 
   private apiError(error: any, fallback: string): string {

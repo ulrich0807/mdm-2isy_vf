@@ -31,6 +31,7 @@ class MigrationTest extends TestCase
             'device_groups',
             'device_enrollment_tokens',
             'device_credentials',
+            'contact_requests',
         ] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Missing table: {$table}");
         }

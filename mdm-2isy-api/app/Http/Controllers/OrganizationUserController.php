@@ -19,6 +19,7 @@ class OrganizationUserController extends Controller
         return response()->json([
             'success' => true,
             'data' => User::query()
+                ->select(['id', 'organization_id', 'name', 'email', 'role', 'created_at'])
                 ->with('organization:id,name,public_id')
                 ->whereIn('role', ['admin', 'operator', 'viewer'])
                 ->when($organization, fn ($query) => $query->whereBelongsTo($organization))

@@ -1,0 +1,52 @@
+<div class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h3 class="m-0 fw-bold text-dark">Messages de contact</h3>
+      <p class="text-muted small m-0">Demandes envoyées depuis la page de connexion</p>
+    </div>
+    <select [(ngModel)]="filter" (ngModelChange)="load()" class="form-select contact-filter">
+      <option value="all">Tous les messages</option>
+      <option value="new">Nouveaux</option>
+      <option value="read">Lus</option>
+      <option value="resolved">Résolus</option>
+    </select>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger d-flex justify-content-between align-items-center">
+    <span>{{ error }}</span><button type="button" class="btn btn-sm btn-danger" (click)="load()">Réessayer</button>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3"><div class="card border-0 p-3 h-100"><span class="small text-muted fw-bold">AFFICHÉS</span><strong class="fs-3">{{ requests.length }}</strong></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card border-0 p-3 h-100"><span class="small text-muted fw-bold">NOUVEAUX</span><strong class="fs-3 text-primary">{{ newCount }}</strong></div></div>
+  </div>
+
+  <div class="card border-0 shadow-sm overflow-hidden">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead><tr><th class="px-4 py-3">Demandeur</th><th>Entreprise</th><th>Objet du souci</th><th>Date</th><th>État</th><th class="text-end px-4">Action</th></tr></thead>
+        <tbody>
+          <tr *ngIf="loading"><td colspan="6" class="text-center py-5"><span class="spinner-border text-primary"></span></td></tr>
+          <tr *ngIf="!loading && requests.length === 0"><td colspan="6" class="text-center text-muted py-5">Aucun message dans cette catégorie.</td></tr>
+          <tr *ngFor="let request of requests" [class.table-primary]="request.status === 'new'">
+            <td class="px-4"><strong>{{ request.name }}</strong><br><small class="text-muted">{{ request.email }}</small></td>
+            <td>{{ request.company }}</td>
+            <td><span class="contact-issue-preview">{{ request.issue }}</span></td>
+            <td><small>{{ request.created_at | date:'dd/MM/yyyy HH:mm' }}</small></td>
+            <td><span class="badge" [ngClass]="request.status === 'new' ? 'bg-primary' : request.status === 'resolved' ? 'bg-success' : 'bg-secondary'">{{ statusLabel(request.status) }}</span></td>
+            <td class="text-end px-4"><button type="button" class="btn btn-sm btn-outline-primary" (click)="open(request)">Consulter</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="selected" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3 contact-detail-backdrop" role="dialog" aria-modal="true">
+  <div class="card border-0 shadow-lg rounded-4 p-4 contact-detail-card">
+    <div class="d-flex justify-content-between gap-3 mb-3"><div><h4 class="fw-bold mb-1">Message de {{ selected.name }}</h4><span class="text-muted">{{ selected.company }}</span></div><button type="button" class="btn-close" (click)="close()" aria-label="Fermer"></button></div>
+    <div class="row g-3 mb-3"><div class="col-sm-6"><div class="contact-meta"><small>Email</small><a [href]="'mailto:' + selected.email">{{ selected.email }}</a></div></div><div class="col-sm-6"><div class="contact-meta"><small>Contact</small><a [href]="'tel:' + selected.contact">{{ selected.contact }}</a></div></div></div>
+    <div class="bg-light rounded-3 p-3 mb-4"><small class="text-muted fw-bold d-block mb-2">SOUCI SIGNALÉ</small><p class="mb-0 text-break preserve-lines">{{ selected.issue }}</p></div>
+    <div class="d-flex justify-content-end gap-2"><button type="button" class="btn btn-light" (click)="close()">Fermer</button><button *ngIf="selected.status !== 'resolved'" type="button" class="btn btn-success" [disabled]="updating[selected.id]" (click)="updateStatus(selected, 'resolved')">Marquer comme résolu</button></div>
+  </div>
+</div>

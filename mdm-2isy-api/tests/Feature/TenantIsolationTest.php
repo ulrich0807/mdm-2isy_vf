@@ -179,7 +179,7 @@ class TenantIsolationTest extends TestCase
 
         $this->getJson('/api/apps')->assertOk()->assertJsonCount(1)->assertJsonPath('0.nom', 'Visible');
         $this->getJson('/api/profils')->assertOk()->assertJsonCount(1)->assertJsonPath('0.nom', 'Visible profile');
-        $this->getJson('/api/logs')->assertOk()->assertJsonCount(1)->assertJsonPath('0.usr', 'Visible');
+        $this->getJson('/api/logs')->assertForbidden();
         $this->getJson('/api/lics')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.cle', 'MDM-VISIBLE');
     }
 

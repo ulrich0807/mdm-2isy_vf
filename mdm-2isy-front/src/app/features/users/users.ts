@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Organization, } from '../../models/fleet.models';
 import { ClientUser } from '../../models/user.models';
 import { Auth } from '../../services/auth';
 import { OrganizationService } from '../../services/organization';
 import { OrganizationUserService } from '../../services/organization-user.service';
-import { Subscription } from 'rxjs';
+import { Subscription, timeout } from 'rxjs';
 
 @Component({
   selector: 'app-users',
@@ -26,11 +26,13 @@ export class Users implements OnInit, OnDestroy {
   search = '';
   form = { name: '', email: '', role: 'viewer', password: '' };
   private usersRequest?: Subscription;
+  private organizationsRequest?: Subscription;
 
   constructor(
     private usersService: OrganizationUserService,
     private organizationService: OrganizationService,
     private auth: Auth,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -45,12 +47,14 @@ export class Users implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.usersRequest?.unsubscribe();
+    this.organizationsRequest?.unsubscribe();
   }
 
   loadOrganizations(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.organizationService.getAll().subscribe({
+    this.organizationsRequest?.unsubscribe();
+    this.organizationsRequest = this.organizationService.getAll().pipe(timeout(10000)).subscribe({
       next: (res) => {
         this.organizations = res.success ? res.data : [];
         const currentExists = this.organizations.some(
@@ -64,13 +68,15 @@ export class Users implements OnInit, OnDestroy {
         } else {
           this.users = [];
           this.loading = false;
+          this.cdr.detectChanges();
         }
       },
       error: () => {
         this.organizations = [];
         this.users = [];
         this.loading = false;
-        this.errorMessage = 'Impossible de charger les organisations.';
+        this.errorMessage = 'Le chargement des organisations a échoué ou prend trop de temps.';
+        this.cdr.detectChanges();
       },
     });
   }
@@ -81,6 +87,7 @@ export class Users implements OnInit, OnDestroy {
       this.usersRequest?.unsubscribe();
       this.users = [];
       this.loading = false;
+      this.cdr.detectChanges();
       return;
     }
     this.loadUsers();
@@ -95,12 +102,17 @@ export class Users implements OnInit, OnDestroy {
     this.usersRequest?.unsubscribe();
     this.loading = true;
     this.errorMessage = '';
-    this.usersRequest = this.usersService.getAll(this.selectedOrganizationId).subscribe({
-      next: res => { this.users = res.data; this.loading = false; },
+    this.usersRequest = this.usersService.getAll(this.selectedOrganizationId).pipe(timeout(10000)).subscribe({
+      next: res => {
+        this.users = res.success ? res.data : [];
+        this.loading = false;
+        this.cdr.detectChanges();
+      },
       error: () => {
         this.users = [];
         this.loading = false;
-        this.errorMessage = 'Impossible de charger les utilisateurs. Réessayez dans quelques instants.';
+        this.errorMessage = 'Le chargement des utilisateurs a échoué ou prend trop de temps. Réessayez.';
+        this.cdr.detectChanges();
       },
     });
   }

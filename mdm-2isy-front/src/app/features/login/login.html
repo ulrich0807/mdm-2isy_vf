@@ -44,11 +44,11 @@
 
           <div class="mb-4 position-relative">
             <!-- Ajout de name et ngModel pour la liaison de données -->
-            <input type="password" name="password" [(ngModel)]="motDePasse" class="form-control form-control-lg border pe-5" placeholder="Mot de passe" required 
+            <input [type]="afficherMotDePasse ? 'text' : 'password'" name="password" [(ngModel)]="motDePasse" class="form-control form-control-lg border pe-5" placeholder="Mot de passe" required
                    style="border-radius: 0.5rem; font-size: 0.9rem; padding: 0.8rem 1rem;">
             <!-- Bouton SHOW positionné en absolu dans l'input -->
-            <span class="position-absolute top-50 end-0 translate-middle-y pe-3 fw-bold" 
-                  style="cursor: pointer; z-index: 10; font-size: 0.75rem; color: #0044aa;">AFFICHER</span>
+            <button type="button" (click)="basculerMotDePasse()" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 fw-bold text-decoration-none border-0"
+                  style="z-index: 10; font-size: 0.75rem; color: #0044aa;" [attr.aria-label]="afficherMotDePasse ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">{{ afficherMotDePasse ? 'MASQUER' : 'AFFICHER' }}</button>
           </div>
 
           <div class="d-flex justify-content-between align-items-center mb-4">
@@ -67,7 +67,7 @@
 
           <div class="text-center mt-auto">
             <span class="text-muted" style="font-size: 0.8rem;">Pas encore de compte ? </span>
-            <a href="#" class="text-decoration-none fw-bold" style="color: #0044aa; font-size: 0.8rem;">Nous contacter</a>
+            <a href="#" (click)="ouvrirContact($event)" class="text-decoration-none fw-bold" style="color: #0044aa; font-size: 0.8rem;">Nous contacter</a>
           </div>
         </form>
 
@@ -75,4 +75,28 @@
     </div>
 
   </div>
+</div>
+
+<div *ngIf="afficherContact" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-start login-contact-backdrop" role="dialog" aria-modal="true" aria-labelledby="contact-title">
+  <form (ngSubmit)="envoyerContact()" class="card border-0 shadow-lg rounded-4 p-4 p-md-5 login-contact-card">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+      <div><h3 id="contact-title" class="fw-bold mb-1">Contactez 2ISY</h3><p class="text-muted small mb-0">Décrivez votre besoin. Le super administrateur vous répondra rapidement.</p></div>
+      <button type="button" class="btn-close" (click)="fermerContact()" aria-label="Fermer"></button>
+    </div>
+    <div *ngIf="contactErreur" class="alert alert-danger py-2 small">{{ contactErreur }}</div>
+    <div *ngIf="contactSucces" class="alert alert-success"><strong>Message envoyé.</strong><br><span class="small">{{ contactSucces }}</span></div>
+    <ng-container *ngIf="!contactSucces">
+      <div class="row g-3">
+        <div class="col-md-6"><label for="contact-name" class="form-label fw-semibold">Nom complet</label><input id="contact-name" name="contactName" [(ngModel)]="contactForm.name" class="form-control" maxlength="120" required></div>
+        <div class="col-md-6"><label for="contact-company" class="form-label fw-semibold">Entreprise</label><input id="contact-company" name="contactCompany" [(ngModel)]="contactForm.company" class="form-control" maxlength="160" required></div>
+        <div class="col-md-6"><label for="contact-email" class="form-label fw-semibold">Adresse e-mail</label><input id="contact-email" name="contactEmail" [(ngModel)]="contactForm.email" type="email" class="form-control" maxlength="190" required></div>
+        <div class="col-md-6"><label for="contact-phone" class="form-label fw-semibold">Téléphone / contact</label><input id="contact-phone" name="contactPhone" [(ngModel)]="contactForm.contact" class="form-control" maxlength="80" required></div>
+        <div class="col-12"><label for="contact-issue" class="form-label fw-semibold">Votre souci ou votre besoin</label><textarea id="contact-issue" name="contactIssue" [(ngModel)]="contactForm.issue" class="form-control" rows="5" minlength="10" maxlength="5000" required></textarea></div>
+      </div>
+    </ng-container>
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <button type="button" class="btn btn-light px-4" (click)="fermerContact()">{{ contactSucces ? 'Fermer' : 'Annuler' }}</button>
+      <button *ngIf="!contactSucces" type="submit" class="btn btn-primary px-4 fw-bold" [disabled]="envoiContact">{{ envoiContact ? 'Envoi...' : 'Envoyer le message' }}</button>
+    </div>
+  </form>
 </div>

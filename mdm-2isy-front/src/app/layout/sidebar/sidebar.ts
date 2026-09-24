@@ -18,19 +18,7 @@ export class Sidebar implements OnInit {
   usrInitials: string = 'U';
   isLoggingOut: boolean = false;
 
-  menuItems = [
-    { label: 'Tableau de bord', icon: '📊', route: '/dashboard' },
-    { label: 'Flotte Terminaux', icon: '📱', route: '/devices' },
-    { label: 'Alertes', icon: '🔔', route: '/alerts', badge: 0 },
-    { label: 'Localisation', icon: '📍', route: '/location' },
-    { label: 'Licences', icon: '🔑', route: '/licences' },
-    { label: 'Clients', icon: '👥', route: '/clients' },
-    { label: 'Utilisateurs', icon: '🧑‍💼', route: '/users' },
-    { label: 'Applications', icon: '📦', route: '/apps' },
-    { label: 'Profils', icon: '👤', route: '/profils' },
-    { label: 'Journal d\'Audit', icon: '📝', route: '/logs' },
-    { label: 'Paramètres', icon: '⚙️', route: '/settings' }
-  ];
+  menuItems: Array<{ label: string; icon: string; route: string; badge?: number; roles: string[] }> = [];
 
   constructor(
     private auth: Auth,
@@ -47,16 +35,23 @@ export class Sidebar implements OnInit {
     this.usrName = usr?.name || 'Utilisateur';
     this.usrRole = ({ super_admin: 'Super Administrateur', admin: 'Administrateur', operator: 'Opérateur', viewer: 'Lecture seule' } as Record<string, string>)[this.auth.role || ''] || 'Utilisateur';
     this.usrInitials = this.getInitials(this.usrName);
+    const role = this.auth.role || 'viewer';
+    this.menuItems = [
+      { label: 'Tableau de bord', icon: '📊', route: '/dashboard', roles: ['super_admin', 'admin', 'operator', 'viewer'] },
+      { label: 'Flotte Terminaux', icon: '📱', route: '/devices', roles: ['super_admin', 'admin', 'operator', 'viewer'] },
+      { label: 'Alertes', icon: '🔔', route: '/alerts', badge: 0, roles: ['super_admin'] },
+      { label: 'Localisation', icon: '📍', route: '/location', roles: ['super_admin', 'admin', 'operator', 'viewer'] },
+      { label: 'Licences', icon: '🔑', route: '/licences', roles: ['super_admin', 'admin'] },
+      { label: 'Clients', icon: '👥', route: '/clients', roles: ['super_admin'] },
+      { label: 'Messages reçus', icon: '✉️', route: '/contact-requests', roles: ['super_admin'] },
+      { label: 'Utilisateurs', icon: '🧑‍💼', route: '/users', roles: ['super_admin', 'admin'] },
+      { label: 'Applications', icon: '📦', route: '/apps', roles: ['super_admin', 'admin', 'operator', 'viewer'] },
+      { label: 'Profils', icon: '👤', route: '/profils', roles: ['super_admin', 'admin', 'operator', 'viewer'] },
+      { label: 'Journal d\'Audit', icon: '📝', route: '/logs', roles: ['super_admin'] },
+      { label: 'Paramètres', icon: '⚙️', route: '/settings', roles: ['super_admin', 'admin', 'operator', 'viewer'] },
+    ].filter((item) => item.roles.includes(role));
 
-    // On masque "Clients" pour les simples admins
-    if (!this.isSuperAdmin) {
-      this.menuItems = this.menuItems.filter(item => item.route !== '/clients');
-    }
-    if (!['admin', 'super_admin'].includes(this.auth.role || '')) {
-      this.menuItems = this.menuItems.filter(item => item.route !== '/users');
-    }
-
-    this.loadAlertsCount();
+    if (this.isSuperAdmin) this.loadAlertsCount();
   }
 
   private loadAlertsCount(): void {

@@ -4,6 +4,7 @@ use App\Http\Controllers\AlertController;
 use App\Http\Controllers\ApplicationDeploymentController;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\AuthCtrl;
+use App\Http\Controllers\ContactRequestController;
 use App\Http\Controllers\DeviceCommandController;
 use App\Http\Controllers\DeviceEnrollmentController;
 use App\Http\Controllers\DeviceGroupController;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 // Authentification
 Route::post('/auth/in', [AuthCtrl::class, 'in'])->middleware('throttle:5,1');
+Route::post('/contact-requests', [ContactRequestController::class, 'store'])->middleware('throttle:5,1');
 
 // Route de vérification de l'état du serveur
 Route::get('/ping', function () {
@@ -89,6 +91,10 @@ Route::middleware('auth:sanctum')->prefix('v1/admin')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // Déconnexion
     Route::post('/auth/out', [AuthCtrl::class, 'out']);
+    Route::get('/contact-requests', [ContactRequestController::class, 'index'])->middleware('role:super_admin');
+    Route::patch('/contact-requests/{contactRequest}', [ContactRequestController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->whereNumber('contactRequest');
 
     // Gestion Terminaux
     Route::get('/terminals', [TerminalController::class, 'index']);
@@ -142,10 +148,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/profils/{id}', [ProfilController::class, 'destroy'])->middleware('role:admin,super_admin');
 
     // --- JOURNAL D'AUDIT (LOGS) ---
-    Route::get('/logs', [LogController::class, 'index']);
+    Route::get('/logs', [LogController::class, 'index'])->middleware('role:super_admin');
 
     // --- CENTRE D'ALERTES ---
-    Route::get('/alerts', [AlertController::class, 'index']);
-    Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
+    Route::get('/alerts', [AlertController::class, 'index'])->middleware('role:super_admin');
+    Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve'])->middleware('role:super_admin')->whereNumber('id');
 
 });

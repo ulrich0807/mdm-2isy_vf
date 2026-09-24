@@ -59,6 +59,17 @@ describe('Devices', () => {
     expect(component.terminalAndroidVersion(component.terminaux[0])).toBe('—');
     expect(component.terminalStatus(component.terminaux[0])).toBe('En ligne');
     expect(component.terminalStorage(component.terminaux[0])).toBe(75);
+    expect(component.fleetStats).toEqual({ total: 1, online: 1, offline: 0, lowBattery: 0 });
+  });
+
+  it('recalculates every fleet statistic from the loaded organization', () => {
+    flushInitialContext([
+      { id: 1, connectivity_status: 'online', batterie: 18 },
+      { id: 2, connectivity_status: 'offline', batterie: 75 },
+      { id: 3, connectivity_status: 'offline', batterie: null },
+    ]);
+
+    expect(component.fleetStats).toEqual({ total: 3, online: 1, offline: 2, lowBattery: 1 });
   });
 
   it('generates an enrollment without asking for hardware information', () => {

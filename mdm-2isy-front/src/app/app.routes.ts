@@ -27,6 +27,11 @@ export const routes: Routes = [
     canActivate: [authGrd, superAdminGrd],
   },
   {
+    path: 'contact-requests',
+    loadComponent: () => import('./features/contact-requests/contact-requests').then((module) => module.ContactRequests),
+    canActivate: [authGrd, superAdminGrd],
+  },
+  {
     path: 'licences',
     loadComponent: () => import('./features/licences/licences').then((module) => module.Licences),
     canActivate: [authGrd],
@@ -54,12 +59,12 @@ export const routes: Routes = [
   {
     path: 'logs',
     loadComponent: () => import('./features/logs/logs').then((module) => module.Logs),
-    canActivate: [authGrd],
+    canActivate: [authGrd, superAdminGrd],
   },
   {
     path: 'alerts',
     loadComponent: () => import('./features/alerts/alerts').then((m) => m.AlertsComponent),
-    canActivate: [authGrd],
+    canActivate: [authGrd, superAdminGrd],
   },
   
   { path: '', redirectTo: '/login', pathMatch: 'full' },

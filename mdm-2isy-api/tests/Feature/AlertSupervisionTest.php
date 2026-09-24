@@ -99,6 +99,9 @@ class AlertSupervisionTest extends TestCase
         $this->assertSame(1, Alert::query()->where('type', 'command_failure')->count());
 
         Sanctum::actingAs($actor);
+        $this->getJson('/api/alerts?status=active')->assertForbidden();
+
+        Sanctum::actingAs(User::factory()->create(['role' => 'super_admin']));
         $this->getJson('/api/alerts?status=active')
             ->assertOk()
             ->assertJsonCount(1, 'data')
