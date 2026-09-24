@@ -1,0 +1,12 @@
+# Clés privées et secrets de signature Android
+*.jks
+*.keystore
+*signing-credentials*
+.signing/
+
+# Sorties locales de préparation et de présentation
+.presentation-build/
+artifacts/
+livrables-client-*/
+test-apps/
+tools/

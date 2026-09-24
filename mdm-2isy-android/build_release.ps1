@@ -25,7 +25,11 @@ $publishedApk = Join-Path $repositoryDirectory 'mdm-2isy-api\public\apk\mdm-agen
 
 Push-Location $projectDirectory
 try {
-    & .\gradlew.bat clean test assembleRelease
+    # Le bloc de validation de signature du build utilise des références de
+    # script que Gradle ne peut pas sérialiser dans son cache de configuration.
+    # Une release doit rester reproductible et ne pas échouer après la création
+    # de l'APK à cause de cette optimisation facultative.
+    & .\gradlew.bat --no-configuration-cache clean test assembleRelease
     if ($LASTEXITCODE -ne 0) {
         throw 'La compilation Android a échoué.'
     }
