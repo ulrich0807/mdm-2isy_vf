@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   ContactRequestItem,
@@ -21,7 +21,10 @@ export class ContactRequests implements OnInit {
   updating: Record<number, boolean> = {};
   selected: ContactRequestItem | null = null;
 
-  constructor(private contactService: ContactRequestService) {}
+  constructor(
+    private contactService: ContactRequestService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   get newCount(): number {
     return this.requests.filter((request) => request.status === 'new').length;
@@ -38,11 +41,13 @@ export class ContactRequests implements OnInit {
       next: (response) => {
         this.requests = response.success ? response.data : [];
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.requests = [];
         this.error = 'Impossible de charger les messages reçus.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -67,10 +72,12 @@ export class ContactRequests implements OnInit {
         if (index !== -1) this.requests[index] = response.data;
         if (this.selected?.id === request.id) this.selected = response.data;
         if (this.filter !== 'all' && this.filter !== response.data.status) this.load();
+        else this.cdr.detectChanges();
       },
       error: () => {
         this.updating[request.id] = false;
         this.error = 'La mise à jour du message a échoué.';
+        this.cdr.detectChanges();
       },
     });
   }
