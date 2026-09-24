@@ -10,7 +10,7 @@
         <option [ngValue]="null">Toutes les organisations</option>
         <option *ngFor="let organization of organizations" [ngValue]="organization.id">{{ organization.name }}</option>
       </select>
-      <button (click)="genererLic()" [disabled]="!selectedOrganizationId" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm text-nowrap" style="background-color: #0077ff;">
+      <button (click)="genererLic()" [disabled]="!selectedOrganizationId" class="btn px-4 py-2 fw-bold rounded-pill shadow-sm text-nowrap" style="background-color: #f69323; color: #000;">
         + Générer une Clé
       </button>
     </div>
@@ -100,7 +100,7 @@
               
               <button *ngIf="l.statut === 'Active' && !l.term_id" (click)="ouvrirModalAssign(l.id)" class="btn btn-sm btn-primary fw-bold shadow-sm">Assigner</button>
               
-              <button *ngIf="l.statut === 'Active' && l.term_id" (click)="detacherLic(l.id)" class="btn btn-sm text-white fw-bold shadow-sm" style="background-color: #ff9900;">Détacher</button>
+              <button *ngIf="l.statut === 'Active' && l.term_id" (click)="detacherLic(l.id)" class="btn btn-sm fw-bold shadow-sm" style="background-color: #f69323; color: #000;">Détacher</button>
             </td>
           </tr>
         </tbody>
@@ -124,7 +124,7 @@
       
       <div class="d-flex justify-content-end gap-2">
         <button (click)="fermerModalAssign()" class="btn btn-light fw-bold px-4">Annuler</button>
-        <button (click)="confirmerAssignation()" class="btn text-white fw-bold px-4" style="background-color: #0077ff;" [disabled]="!terminalSelectionne">Lier</button>
+        <button (click)="confirmerAssignation()" class="btn fw-bold px-4" style="background-color: #f69323; color: #000;" [disabled]="!terminalSelectionne">Lier</button>
       </div>
     </div>
   </div>

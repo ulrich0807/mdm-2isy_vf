@@ -1,9 +1,9 @@
 <!-- Arrière-plan global gris très clair -->
-<div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center animate-fade-up p-0 p-md-3" style="background-color: #f4f7f9;">
+<div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center animate-fade-up p-0 p-md-3" style="background-color: #f7f7f7;">
 
   <!-- Conteneur Principal (La grande carte bleue flottante) -->
   <div class="login-shell row shadow-lg position-relative overflow-hidden"
-       style="max-width: 950px; width: 95%; min-height: 550px; border-radius: 1.5rem; background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%);">
+       style="max-width: 950px; width: 95%; min-height: 550px; border-radius: 1.5rem; background: linear-gradient(135deg, #000000 0%, #575656 72%, #f69323 100%);">
 
     <!-- Formes décoratives (Bulles d'arrière-plan abstraites) -->
     <div class="position-absolute rounded-circle" 
@@ -13,7 +13,7 @@
 
     <!-- Partie Gauche : Texte d'accueil -->
     <div class="login-intro col-md-6 d-flex flex-column justify-content-center p-5 text-white position-relative" style="z-index: 1;">
-      <img src="/branding/mdm-2isy-logo.png" alt="Logo 2ISY MDM" width="82" height="82" class="mb-4 login-brand-logo">
+      <img src="/branding/mdm-2isy-logo.png" alt="Logo 2ISY MDM" width="104" height="104" class="mb-4 login-brand-logo">
       <h1 class="fw-bold mb-3 text-uppercase" style="letter-spacing: 2px;">Bienvenue</h1>
       <h5 class="fw-bold mb-4 text-uppercase">2ISY MDM · Device Control Center</h5>
       <p class="small opacity-75" style="line-height: 1.8; font-size: 0.9rem;">
@@ -25,7 +25,7 @@
     <div class="login-form-column col-md-6 d-flex align-items-center justify-content-center p-3 p-md-4 position-relative" style="z-index: 1;">
       <div class="bg-white w-100 h-100 rounded-4 shadow-sm p-4 p-md-5 d-flex flex-column justify-content-center">
         
-        <h2 class="fw-bold mb-2 text-center" style="color: #0044aa;">Connexion</h2>
+        <h2 class="fw-bold mb-2 text-center" style="color: #000000;">Connexion</h2>
         <p class="text-muted small text-center mb-4" style="font-size: 0.8rem;">Veuillez entrer vos identifiants pour continuer</p>
 
         <!-- Affichage dynamique de l'erreur -->
@@ -48,7 +48,7 @@
                    style="border-radius: 0.5rem; font-size: 0.9rem; padding: 0.8rem 1rem;">
             <!-- Bouton SHOW positionné en absolu dans l'input -->
             <button type="button" (click)="basculerMotDePasse()" class="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-3 fw-bold text-decoration-none border-0"
-                  style="z-index: 10; font-size: 0.75rem; color: #0044aa;" [attr.aria-label]="afficherMotDePasse ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">{{ afficherMotDePasse ? 'MASQUER' : 'AFFICHER' }}</button>
+                  style="z-index: 10; font-size: 0.75rem; color: #575656;" [attr.aria-label]="afficherMotDePasse ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">{{ afficherMotDePasse ? 'MASQUER' : 'AFFICHER' }}</button>
           </div>
 
           <div class="d-flex justify-content-between align-items-center mb-4">
@@ -61,13 +61,13 @@
 
           <!-- Désactivation du bouton pendant le chargement -->
           <button type="submit" [disabled]="chargement" class="btn w-100 py-3 rounded-3 fw-bold text-white shadow-sm mb-4" 
-                  style="background: linear-gradient(135deg, #0077ff 0%, #0044aa 100%); font-size: 1.1rem; border: none; transition: transform 0.2s;">
+                  style="background: #f69323; color: #000 !important; font-size: 1.1rem; border: none; transition: transform 0.2s;">
             {{ chargement ? 'Connexion en cours...' : 'Se connecter' }}
           </button>
 
           <div class="text-center mt-auto">
             <span class="text-muted" style="font-size: 0.8rem;">Pas encore de compte ? </span>
-            <a href="#" (click)="ouvrirContact($event)" class="text-decoration-none fw-bold" style="color: #0044aa; font-size: 0.8rem;">Nous contacter</a>
+            <a href="#" (click)="ouvrirContact($event)" class="text-decoration-none fw-bold" style="color: #575656; font-size: 0.8rem;">Nous contacter</a>
           </div>
         </form>
 

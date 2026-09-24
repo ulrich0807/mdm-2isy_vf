@@ -269,7 +269,7 @@ export class Location implements OnInit, OnDestroy {
 
           // Dessiner le tracé
           this.historyPolyline = L.polyline(points, {
-            color: '#0d6efd',
+            color: '#f69323',
             weight: 5,
             opacity: 0.7,
             dashArray: '10, 10',

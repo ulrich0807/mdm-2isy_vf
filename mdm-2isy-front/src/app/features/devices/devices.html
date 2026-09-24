@@ -4,7 +4,7 @@
       <h3 class="fw-bold m-0 text-dark">Flotte de Terminaux</h3>
       <p class="text-muted small m-0">Enrôlement et gestion centralisée des appareils assignés</p>
     </div>
-    <button (click)="ouvrirModal()" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm" style="background-color: #0077ff;">
+    <button (click)="ouvrirModal()" class="btn px-4 py-2 fw-bold rounded-pill shadow-sm" style="background-color: #f69323; color: #000;">
       + Enrôler un terminal
     </button>
   </div>
@@ -445,7 +445,7 @@
             type="button"
             (click)="genererEnrollment()"
             class="btn text-white fw-bold px-4"
-            style="background-color: #0077ff;"
+            style="background-color: #f69323; color: #000;"
             [disabled]="generationEnCours || !enrollmentForm.label.trim()"
           >{{ generationEnCours ? 'Génération...' : 'Générer le jeton' }}</button>
         </div>

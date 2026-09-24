@@ -249,10 +249,10 @@ export class Dashboard implements OnInit, OnDestroy {
           datasets: [{
             label: 'Actions MDM',
             data: this.lineData.length > 0 ? this.lineData : [0],
-            borderColor: '#0077ff',
+            borderColor: '#f69323',
             tension: 0.4,
             fill: true,
-            backgroundColor: 'rgba(0, 119, 255, 0.1)'
+            backgroundColor: 'rgba(246, 147, 35, 0.14)'
           }]
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }

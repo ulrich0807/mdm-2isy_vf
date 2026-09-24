@@ -11,7 +11,7 @@
         <option [ngValue]="null">Toutes les organisations</option>
         <option *ngFor="let organization of organizations" [ngValue]="organization.id">{{ organization.name }}</option>
       </select>
-      <button (click)="ouvMod()" [disabled]="isSuperAdmin && !selectedOrganizationId" class="btn px-4 py-2 text-white fw-bold rounded-pill shadow-sm text-nowrap" style="background-color: #0077ff;">
+      <button (click)="ouvMod()" [disabled]="isSuperAdmin && !selectedOrganizationId" class="btn px-4 py-2 fw-bold rounded-pill shadow-sm text-nowrap" style="background-color: #f69323; color: #000;">
         + Créer un Profil
       </button>
     </div>
@@ -182,7 +182,7 @@
       
       <div class="d-flex justify-content-end gap-2">
         <button (click)="fermMod()" class="btn btn-light fw-bold px-4">Annuler</button>
-        <button (click)="savProf()" class="btn text-white fw-bold px-4 shadow-sm" style="background-color: #0077ff;">Enregistrer</button>
+        <button (click)="savProf()" class="btn fw-bold px-4 shadow-sm" style="background-color: #f69323; color: #000;">Enregistrer</button>
       </div>
     </div>
   </div>
