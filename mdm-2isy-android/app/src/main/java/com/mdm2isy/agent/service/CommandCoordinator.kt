@@ -6,6 +6,7 @@ import com.mdm2isy.agent.command.CommandExecutionResult
 import com.mdm2isy.agent.command.DeviceCommandExecutor
 import com.mdm2isy.agent.model.CommandPayload
 import com.mdm2isy.agent.model.DeviceCommand
+import com.mdm2isy.agent.model.KnownCommandType
 import com.mdm2isy.agent.network.MdmConflictException
 import com.mdm2isy.agent.network.MdmApiException
 import com.mdm2isy.agent.network.MdmAuthenticationException
@@ -28,6 +29,24 @@ data class CommandSyncReport(
     val received: Int,
     val finalized: Int,
 )
+
+internal object CommandExecutionTimeoutPolicy {
+    private const val DEFAULT_EXECUTION_TIMEOUT_SECONDS = 30L
+
+    // The server keeps install commands valid for 60 minutes and their signed
+    // download URL for 65 minutes. Leave five minutes for result publication.
+    const val APP_INSTALL_TIMEOUT_SECONDS = 55L * 60L
+
+    fun timeoutSeconds(command: DeviceCommand): Long {
+        val defaultSeconds = if (command.knownType == KnownCommandType.INSTALL_APP) {
+            APP_INSTALL_TIMEOUT_SECONDS
+        } else {
+            DEFAULT_EXECUTION_TIMEOUT_SECONDS
+        }
+
+        return command.payload.timeoutSeconds?.toLong() ?: defaultSeconds
+    }
+}
 
 /**
  * Implements the persist -> ACK -> execute -> persist result -> publish sequence.
@@ -253,9 +272,8 @@ class CommandCoordinator(
             handle = executor.execute(command) { execution ->
                 if (result.compareAndSet(null, execution)) completed.countDown()
             }
-            val timeoutSeconds = (command.payload.timeoutSeconds ?: DEFAULT_EXECUTION_TIMEOUT_SECONDS)
-                .coerceIn(MIN_EXECUTION_TIMEOUT_SECONDS, MAX_EXECUTION_TIMEOUT_SECONDS)
-            if (completed.await(timeoutSeconds.toLong() + EXECUTION_GRACE_SECONDS, TimeUnit.SECONDS)) {
+            val timeoutSeconds = CommandExecutionTimeoutPolicy.timeoutSeconds(command)
+            if (completed.await(timeoutSeconds + EXECUTION_GRACE_SECONDS, TimeUnit.SECONDS)) {
                 result.get()
             } else {
                 handle?.cancel()
@@ -345,9 +363,6 @@ class CommandCoordinator(
 
     private companion object {
         const val POLL_LIMIT = 10
-        const val DEFAULT_EXECUTION_TIMEOUT_SECONDS = 30
-        const val MIN_EXECUTION_TIMEOUT_SECONDS = 5
-        const val MAX_EXECUTION_TIMEOUT_SECONDS = 300
         const val EXECUTION_GRACE_SECONDS = 5L
         const val ACKNOWLEDGED_SERVER_STATUS = "acknowledged"
 

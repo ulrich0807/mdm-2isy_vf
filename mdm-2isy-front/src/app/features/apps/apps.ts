@@ -7,7 +7,11 @@ import { OrganizationService } from '../../services/organization';
 import { Organization } from '../../models/fleet.models';
 import { TermService } from '../../services/term';
 import { Terminal } from '../../models/fleet.models';
-import { finalize } from 'rxjs';
+import { finalize, timeout } from 'rxjs';
+
+const MAX_APK_SIZE_MIB = 250;
+const MAX_APK_SIZE_BYTES = MAX_APK_SIZE_MIB * 1024 * 1024;
+const APK_UPLOAD_TIMEOUT_MS = 15 * 60 * 1000;
 
 @Component({
   selector: 'app-apps',
@@ -29,6 +33,9 @@ export class Apps implements OnInit {
   deployNotice = '';
   deployError = '';
   editingApp: any | null = null;
+  uploadSubmitting = false;
+  uploadError = '';
+  readonly maxApkSizeMiB = MAX_APK_SIZE_MIB;
   
   nvApp = { nom: '', pkg: '', type: 'blanche', ver: '' };
   ficApk: File | null = null;
@@ -115,13 +122,39 @@ export class Apps implements OnInit {
     });
   }
 
-  onFileSel(evt: any) {
-    this.ficApk = evt.target.files[0];
+  onFileSel(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+
+    this.uploadError = '';
+    this.ficApk = null;
+
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.apk')) {
+      this.uploadError = "Le fichier sélectionné n’est pas un fichier APK.";
+      input.value = '';
+      return;
+    }
+
+    if (file.size > MAX_APK_SIZE_BYTES) {
+      this.uploadError = `Cet APK pèse ${this.formatFileSize(file.size)}. La taille maximale autorisée est de ${MAX_APK_SIZE_MIB} Mio.`;
+      input.value = '';
+      return;
+    }
+
+    this.ficApk = file;
+  }
+
+  formatFileSize(bytes: number): string {
+    return `${(bytes / 1024 / 1024).toFixed(2)} Mio`;
   }
 
   ouvrirModal() {
     this.editingApp = null;
     this.nvApp = { nom: '', pkg: '', type: 'blanche', ver: '' };
+    this.ficApk = null;
+    this.uploadError = '';
     this.showModal = true;
   }
 
@@ -129,6 +162,7 @@ export class Apps implements OnInit {
     this.editingApp = app;
     this.nvApp = { nom: app.nom, pkg: app.pkg, type: app.type, ver: app.ver || '' };
     this.ficApk = null;
+    this.uploadError = '';
     this.showModal = true;
   }
   
@@ -137,11 +171,17 @@ export class Apps implements OnInit {
     this.editingApp = null;
     this.nvApp = { nom: '', pkg: '', type: 'blanche', ver: '' };
     this.ficApk = null;
+    this.uploadError = '';
   }
 
   sauverApp() {
     if (!this.nvApp.nom || !this.nvApp.pkg) return alert('Remplissez les champs obligatoires.');
     if (this.isSuperAdmin && !this.selectedOrganizationId) return alert('Sélectionnez d’abord une organisation.');
+    if (this.uploadSubmitting || this.uploadError) return;
+    if (this.ficApk && this.ficApk.size > MAX_APK_SIZE_BYTES) {
+      this.uploadError = `La taille maximale autorisée est de ${MAX_APK_SIZE_MIB} Mio.`;
+      return;
+    }
     
     // --- CORRECTION : Construction de l'objet FormData ---
     const fd = new FormData();
@@ -160,7 +200,15 @@ export class Apps implements OnInit {
     const request = this.editingApp
       ? this.appSvc.update(this.editingApp.id, fd)
       : this.appSvc.add(fd);
-    request.subscribe({
+    this.uploadSubmitting = true;
+    this.uploadError = '';
+    request.pipe(
+      timeout(APK_UPLOAD_TIMEOUT_MS),
+      finalize(() => {
+        this.uploadSubmitting = false;
+        this.cdRef.detectChanges();
+      }),
+    ).subscribe({
       next: (res: any) => {
         if(res.success) {
           alert(`✅ ${res.message}`);
@@ -168,7 +216,20 @@ export class Apps implements OnInit {
           this.getApps(); // Recharge la liste
         }
       },
-      error: (err) => console.error(err)
+      error: (err) => {
+        console.error(err);
+        if (err?.status === 413) {
+          this.uploadError = `Le serveur a refusé le fichier car il dépasse la limite d’envoi. La limite attendue est de ${MAX_APK_SIZE_MIB} Mio ; vérifiez que la dernière configuration serveur est déployée.`;
+          return;
+        }
+        if (err?.name === 'TimeoutError') {
+          this.uploadError = "L’envoi a dépassé 15 minutes. Vérifiez la connexion puis réessayez.";
+          return;
+        }
+        this.uploadError = err?.error?.message
+          || err?.error?.errors?.chemin_apk?.[0]
+          || "Impossible d’enregistrer l’application. Vérifiez le fichier et réessayez.";
+      }
     });
   }
 

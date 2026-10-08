@@ -21,11 +21,10 @@ interface AppInstaller {
     fun uninstallSilently(packageName: String, callback: (Boolean, String?) -> Unit)
 }
 
-class AndroidAppInstaller(private val context: Context) : AppInstaller {
+internal const val MAX_APK_MEBIBYTES = 250L
+internal const val MAX_APK_BYTES = MAX_APK_MEBIBYTES * 1024L * 1024L
 
-    private companion object {
-        const val MAX_APK_BYTES = 100L * 1024L * 1024L
-    }
+class AndroidAppInstaller(private val context: Context) : AppInstaller {
 
     override fun installSilently(
         apkUrl: String,
@@ -49,7 +48,7 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
 
                 if (connection.contentLengthLong > MAX_APK_BYTES) {
                     connection.disconnect()
-                    callback(false, "Le fichier APK dépasse la limite de 100 Mo.")
+                    callback(false, "Le fichier APK dépasse la limite de $MAX_APK_MEBIBYTES Mio.")
                     return@thread
                 }
 
@@ -70,7 +69,9 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                         while (input.read(buffer).also { bytesRead = it } != -1) {
                             totalBytes += bytesRead
                             if (totalBytes > MAX_APK_BYTES) {
-                                throw IllegalArgumentException("Le fichier APK dépasse la limite de 100 Mo.")
+                                throw IllegalArgumentException(
+                                    "Le fichier APK dépasse la limite de $MAX_APK_MEBIBYTES Mio.",
+                                )
                             }
                             out.write(buffer, 0, bytesRead)
                         }

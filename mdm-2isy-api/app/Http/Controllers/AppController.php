@@ -6,8 +6,8 @@ use App\Models\App;
 use App\Support\OrganizationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AppController extends Controller
 {
@@ -29,13 +29,8 @@ class AppController extends Controller
             'pkg' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['blanche', 'noire'])],
             'ver' => ['nullable', 'string', 'max:100'],
-            'chemin_apk' => [
-                'nullable',
-                'file',
-                'max:102400',
-                'mimetypes:application/vnd.android.package-archive,application/octet-stream,application/zip',
-            ],
-        ]);
+            'chemin_apk' => $this->apkUploadRules(),
+        ], $this->apkUploadValidationMessages());
         unset($data['chemin_apk']);
 
         if ($request->hasFile('chemin_apk')) {
@@ -71,13 +66,8 @@ class AppController extends Controller
             'pkg' => ['sometimes', 'required', 'string', 'max:255'],
             'type' => ['sometimes', 'required', Rule::in(['blanche', 'noire'])],
             'ver' => ['nullable', 'string', 'max:100'],
-            'chemin_apk' => [
-                'nullable',
-                'file',
-                'max:102400',
-                'mimetypes:application/vnd.android.package-archive,application/octet-stream,application/zip',
-            ],
-        ]);
+            'chemin_apk' => $this->apkUploadRules(),
+        ], $this->apkUploadValidationMessages());
         unset($data['chemin_apk']);
 
         if ($request->hasFile('chemin_apk')) {
@@ -106,5 +96,32 @@ class AppController extends Controller
             $app->pkg.'.apk',
             ['Content-Type' => 'application/vnd.android.package-archive'],
         );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function apkUploadRules(): array
+    {
+        return [
+            'nullable',
+            'file',
+            'max:'.config('mdm.apk_upload_max_kilobytes', 256000),
+            'mimetypes:application/vnd.android.package-archive,application/octet-stream,application/zip',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function apkUploadValidationMessages(): array
+    {
+        $maxKilobytes = (int) config('mdm.apk_upload_max_kilobytes', 256000);
+        $maxMebibytes = (int) floor($maxKilobytes / 1024);
+
+        return [
+            'chemin_apk.max' => "Le fichier APK ne doit pas dépasser {$maxMebibytes} Mio.",
+            'chemin_apk.mimetypes' => 'Le fichier sélectionné doit être un paquet APK valide.',
+        ];
     }
 }

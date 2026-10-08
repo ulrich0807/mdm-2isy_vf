@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\DeviceCredential;
-use App\Models\DeviceCommand;
-use App\Models\DeviceGroup;
 use App\Models\App;
+use App\Models\DeviceCommand;
+use App\Models\DeviceCredential;
+use App\Models\DeviceGroup;
 use App\Models\Lic;
 use App\Models\Log;
 use App\Models\Organization;
@@ -278,6 +278,81 @@ class TenantIsolationTest extends TestCase
         $this->get($command->payload['url'])
             ->assertOk()
             ->assertHeader('content-type', 'application/vnd.android.package-archive');
+    }
+
+    public function test_admin_can_upload_an_apk_up_to_250_mib(): void
+    {
+        Storage::fake('local');
+        $organization = $this->organization('large-apk-owner');
+        Sanctum::actingAs(User::factory()->create([
+            'role' => 'admin',
+            'organization_id' => $organization->id,
+        ]));
+
+        $this->assertSame(256000, config('mdm.apk_upload_max_kilobytes'));
+
+        $response = $this->post('/api/apps', [
+            'nom' => 'Application volumineuse',
+            'pkg' => 'com.example.large',
+            'type' => 'blanche',
+            'chemin_apk' => UploadedFile::fake()->create(
+                'large.apk',
+                256000,
+                'application/vnd.android.package-archive',
+            ),
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated();
+        Storage::disk('local')->assertExists($response->json('data.chemin_apk'));
+    }
+
+    public function test_apk_larger_than_250_mib_is_rejected_on_creation_and_update(): void
+    {
+        Storage::fake('local');
+        $organization = $this->organization('apk-limit-owner');
+        Sanctum::actingAs(User::factory()->create([
+            'role' => 'admin',
+            'organization_id' => $organization->id,
+        ]));
+
+        $payload = [
+            'nom' => 'Application trop volumineuse',
+            'pkg' => 'com.example.too.large',
+            'type' => 'blanche',
+            'chemin_apk' => UploadedFile::fake()->create(
+                'too-large.apk',
+                256001,
+                'application/vnd.android.package-archive',
+            ),
+        ];
+
+        $this->post('/api/apps', $payload, ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('chemin_apk')
+            ->assertJsonPath('errors.chemin_apk.0', 'Le fichier APK ne doit pas dépasser 250 Mio.');
+
+        $app = App::create([
+            'organization_id' => $organization->id,
+            'nom' => 'Application existante',
+            'pkg' => 'com.example.existing',
+            'type' => 'blanche',
+            'chemin_apk' => 'applications/existing.apk',
+        ]);
+        Storage::disk('local')->put($app->chemin_apk, 'apk');
+
+        $this->post("/api/apps/{$app->id}/update", [
+            'chemin_apk' => UploadedFile::fake()->create(
+                'too-large-update.apk',
+                256001,
+                'application/vnd.android.package-archive',
+            ),
+        ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('chemin_apk')
+            ->assertJsonPath('errors.chemin_apk.0', 'Le fichier APK ne doit pas dépasser 250 Mio.');
+
+        Storage::disk('local')->assertExists('applications/existing.apk');
+        $this->assertSame('applications/existing.apk', $app->fresh()->chemin_apk);
     }
 
     public function test_super_admin_must_select_an_organization_when_creating_a_licence(): void

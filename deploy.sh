@@ -2,6 +2,10 @@
 set -euo pipefail
 
 project_dir="/var/www/mdm-2isy_vf"
+nginx_site="/etc/nginx/sites-available/mdm-2isy.conf"
+php_fpm_version="${MDM_PHP_FPM_VERSION:-8.3}"
+php_upload_ini="/etc/php/${php_fpm_version}/fpm/conf.d/99-mdm-upload.ini"
+php_fpm_service="php${php_fpm_version}-fpm"
 
 echo "Démarrage du déploiement..."
 cd "$project_dir"
@@ -25,6 +29,34 @@ echo "Construction du frontend Angular..."
 cd "$project_dir/mdm-2isy-front"
 npm ci
 npm run build -- --configuration production
+
+echo "Application des limites d'envoi APK (250 Mio)..."
+install -m 0644 "$project_dir/php-mdm-upload.ini" "$php_upload_ini"
+
+# Conserver automatiquement la configuration Nginx precedente si la nouvelle
+# version ne passe pas sa validation, afin de ne pas fragiliser le prochain
+# redemarrage du serveur.
+nginx_backup="$(mktemp)"
+nginx_site_existed=0
+if [ -f "$nginx_site" ]; then
+    cp -p "$nginx_site" "$nginx_backup"
+    nginx_site_existed=1
+fi
+install -m 0644 "$project_dir/mdm-2isy.conf" "$nginx_site"
+if ! nginx -t; then
+    if [ "$nginx_site_existed" -eq 1 ]; then
+        cp -p "$nginx_backup" "$nginx_site"
+    else
+        rm -f "$nginx_site"
+    fi
+    rm -f "$nginx_backup"
+    echo "Configuration Nginx invalide : restauration de la version precedente." >&2
+    exit 1
+fi
+rm -f "$nginx_backup"
+
+systemctl restart "$php_fpm_service"
+systemctl reload nginx
 
 echo "Mise à jour des permissions d'exécution Laravel..."
 chown -R www-data:www-data "$project_dir/mdm-2isy-api/storage" "$project_dir/mdm-2isy-api/bootstrap/cache"
