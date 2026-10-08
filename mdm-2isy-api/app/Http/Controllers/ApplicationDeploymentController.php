@@ -73,12 +73,24 @@ class ApplicationDeploymentController extends Controller
                 continue;
             }
 
+            if ($app->artifact_type === 'apks' && ! $this->supportsSplitInstall($terminal)) {
+                $rejected[] = [
+                    'terminal_id' => $terminalId,
+                    'message' => "Ce terminal doit d'abord recevoir l'agent MDM 0.1.12 ou supérieur pour installer un paquet de splits.",
+                ];
+                continue;
+            }
+
             try {
                 $issued = $commands->issue(
                     $terminal,
                     $actor,
                     'install_app',
-                    ['url' => $downloadUrl, 'packageName' => $app->pkg],
+                    [
+                        'url' => $downloadUrl,
+                        'packageName' => $app->pkg,
+                        'artifactType' => $app->artifact_type ?: 'apk',
+                    ],
                     'app-deploy-'.$app->id.'-'.$terminal->id.'-'.Str::uuid(),
                 );
             } catch (DeviceCommandException $exception) {
@@ -116,5 +128,18 @@ class ApplicationDeploymentController extends Controller
             'message' => count($accepted).' commande(s) mise(s) en file, '.count($rejected).' rejetée(s).',
             'data' => ['accepted' => $accepted, 'rejected' => $rejected],
         ], $rejected === [] ? Response::HTTP_CREATED : Response::HTTP_MULTI_STATUS);
+    }
+
+    private function supportsSplitInstall(Terminal $terminal): bool
+    {
+        if (! is_string($terminal->agent_version) || $terminal->agent_version === '') {
+            return false;
+        }
+
+        if (preg_match('/\d+(?:\.\d+)+/', $terminal->agent_version, $matches) !== 1) {
+            return false;
+        }
+
+        return version_compare($matches[0], '0.1.12', '>=');
     }
 }

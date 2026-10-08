@@ -26,9 +26,9 @@ Agent natif Kotlin pour Android 13 et versions supérieures. Il communique avec 
 | `compileSdk` | `37` |
 | `targetSdk` | `36` |
 
-Version actuelle de l’agent : `0.1.11` (`versionCode` 12).
+Version actuelle de l’agent : `0.1.12` (`versionCode` 13).
 
-L’agent accepte les APK autonomes jusqu’à 250 Mio. Une installation peut rester
+L’agent accepte les APK autonomes et les paquets `.apks/.zip` jusqu’à 250 Mio. Une installation peut rester
 en cours jusqu’à 55 minutes afin de couvrir les téléchargements sur connexion
 lente sans produire un faux échec local.
 

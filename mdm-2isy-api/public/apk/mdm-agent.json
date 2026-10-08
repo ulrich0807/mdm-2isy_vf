@@ -1,8 +1,8 @@
 {
   "package_name": "com.mdm2isy.agent",
-  "version_code": 12,
-  "version_name": "0.1.11",
-  "sha256": "eace53c48ccf49fdf17fce8375090ef4203d53804773da762cba0b2d75c3f97c",
-  "size_bytes": 789550,
-  "generated_at": "2026-10-08T16:43:29.7207805+00:00"
+  "version_code": 13,
+  "version_name": "0.1.12",
+  "sha256": "56ea956b84973db822c4bc07462ee19f52625c29ec4b7b8f11a8cb780d94889d",
+  "size_bytes": 793754,
+  "generated_at": "2026-10-08T17:23:55.7745936+00:00"
 }

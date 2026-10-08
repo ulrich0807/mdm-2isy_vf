@@ -46,7 +46,10 @@
                 {{ a.type === 'blanche' ? '🟢 Liste Blanche' : '🔴 Bloquée (Liste Noire)' }}
               </span>
             </td>
-            <td class="py-3 text-muted fw-bold">{{ a.ver }}</td>
+            <td class="py-3 text-muted fw-bold">
+              {{ a.ver }}
+              <span *ngIf="a.artifact_type === 'apks'" class="badge rounded-pill text-bg-warning ms-2">Splits</span>
+            </td>
             <td class="py-3 px-4 text-end">
               <button *ngIf="a.type === 'blanche'" (click)="ouvrirDeploiement(a)" [disabled]="!a.chemin_apk" class="btn btn-sm btn-primary border-0 me-2 shadow-sm" title="Pousser vers les terminaux">Pousser (Install)</button>
               <button (click)="ouvrirEdition(a)" class="btn btn-sm btn-light border me-2" title="Mettre à jour">✏️</button>
@@ -88,9 +91,9 @@
       
       <!-- Fichier APK uniquement si liste blanche -->
       <div class="mb-4" *ngIf="nvApp.type === 'blanche'">
-        <label class="form-label small fw-bold text-muted">Fichier d'installation (.apk) - Optionnel</label>
-        <input type="file" (change)="onFileSel($event)" class="form-control" accept=".apk,application/vnd.android.package-archive" [disabled]="uploadSubmitting">
-        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">APK autonome uniquement · taille maximale {{ maxApkSizeMiB }} Mio.</small>
+        <label class="form-label small fw-bold text-muted">Fichier d'installation (.apk, .apks ou .zip) - Optionnel</label>
+        <input type="file" (change)="onFileSel($event)" class="form-control" accept=".apk,.apks,.zip,application/vnd.android.package-archive,application/zip" [disabled]="uploadSubmitting">
+        <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">APK autonome ou paquet de splits Android · taille maximale {{ maxApkSizeMiB }} Mio.</small>
         <small *ngIf="ficApk" class="d-block mt-1 fw-semibold text-success">{{ ficApk.name }} · {{ formatFileSize(ficApk.size) }}</small>
       </div>
 

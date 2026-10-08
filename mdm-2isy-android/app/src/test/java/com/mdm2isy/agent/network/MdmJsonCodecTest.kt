@@ -38,6 +38,30 @@ class MdmJsonCodecTest {
     }
 
     @Test
+    fun `split artifact type survives command decoding`() {
+        val command = MdmJsonCodec.parseCommands(
+            """
+            {
+              "success": true,
+              "data": [{
+                "public_id": "11111111-1111-4111-8111-111111111111",
+                "type": "install_app",
+                "payload": {
+                  "url": "https://api.example.test/app.apks",
+                  "packageName": "com.akanea.xmobile",
+                  "artifactType": "apks"
+                },
+                "queued_at": "2026-10-08T16:00:00+00:00",
+                "expires_at": "2026-10-08T17:00:00+00:00"
+              }]
+            }
+            """.trimIndent(),
+        ).single()
+
+        assertEquals("apks", command.payload.artifactType)
+    }
+
+    @Test
     fun `heartbeat decodes every security restriction`() {
         val receipt = MdmJsonCodec.parseHeartbeat(
             """

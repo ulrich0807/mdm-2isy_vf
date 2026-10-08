@@ -131,8 +131,9 @@ export class Apps implements OnInit {
 
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.apk')) {
-      this.uploadError = "Le fichier sélectionné n’est pas un fichier APK.";
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.apk') && !fileName.endsWith('.apks') && !fileName.endsWith('.zip')) {
+      this.uploadError = "Sélectionnez un APK autonome ou un paquet .apks/.zip contenant les splits Android.";
       input.value = '';
       return;
     }

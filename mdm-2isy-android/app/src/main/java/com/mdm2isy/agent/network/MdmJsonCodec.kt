@@ -188,6 +188,7 @@ internal object MdmJsonCodec {
                 highAccuracy = payload.optionalBoolean("high_accuracy"),
                 url = payload.optionalString("url"),
                 packageName = payload.optionalString("packageName"),
+                artifactType = payload.optionalString("artifactType"),
             ),
             queuedAt = json.requiredString("queued_at"),
             sentAt = json.optionalString("sent_at"),

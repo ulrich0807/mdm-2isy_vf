@@ -115,6 +115,12 @@ class TerminalCommandController extends Controller
             ]);
         }
 
+        if ($app->artifact_type === 'apks' && ! $this->supportsSplitInstall($device)) {
+            throw ValidationException::withMessages([
+                'app_id' => "Ce terminal doit d'abord recevoir l'agent MDM 0.1.12 ou supérieur pour installer un paquet de splits.",
+            ]);
+        }
+
         $request->replace([
             'type' => 'install_app',
             'payload' => [
@@ -124,6 +130,7 @@ class TerminalCommandController extends Controller
                     ['app' => $app->id],
                 ),
                 'packageName' => $app->pkg,
+                'artifactType' => $app->artifact_type ?: 'apk',
             ],
         ]);
 
@@ -172,14 +179,15 @@ class TerminalCommandController extends Controller
             'payload' => [
                 'sometimes',
                 'nullable',
-                'array:message,timeout_seconds,high_accuracy,url,packageName',
-                'max:5',
+                'array:message,timeout_seconds,high_accuracy,url,packageName,artifactType',
+                'max:6',
             ],
             'payload.message' => ['sometimes', 'string', 'max:500'],
             'payload.timeout_seconds' => ['sometimes', 'integer', 'between:5,300'],
             'payload.high_accuracy' => ['sometimes', 'boolean'],
             'payload.url' => ['sometimes', 'url'],
             'payload.packageName' => ['sometimes', 'string', 'max:255'],
+            'payload.artifactType' => ['sometimes', Rule::in(['apk', 'apks'])],
             'confirmation' => [
                 'required_if:type,wipe',
                 'prohibited_unless:type,wipe',
@@ -266,7 +274,7 @@ class TerminalCommandController extends Controller
             'locate' => ['timeout_seconds', 'high_accuracy'],
             'lock' => ['message'],
             'wipe' => [],
-            'install_app' => ['url', 'packageName'],
+            'install_app' => ['url', 'packageName', 'artifactType'],
             'uninstall_app' => ['packageName'],
         };
 
@@ -315,6 +323,19 @@ class TerminalCommandController extends Controller
         ])->validate();
 
         return $validated['idempotency_key'] ?? 'server_'.Str::uuid()->toString();
+    }
+
+    private function supportsSplitInstall(Terminal $terminal): bool
+    {
+        if (! is_string($terminal->agent_version) || $terminal->agent_version === '') {
+            return false;
+        }
+
+        if (preg_match('/\d+(?:\.\d+)+/', $terminal->agent_version, $matches) !== 1) {
+            return false;
+        }
+
+        return version_compare($matches[0], '0.1.12', '>=');
     }
 
     private function administrator(Request $request): User

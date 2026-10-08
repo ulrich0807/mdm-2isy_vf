@@ -19,6 +19,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import java.util.UUID
+import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
 
 data class AppInstallRequest(
@@ -28,8 +29,15 @@ data class AppInstallRequest(
     val expectedVersionCode: Long? = null,
     val expectedVersionName: String? = null,
     val expectedSha256: String? = null,
+    val artifactType: String = "apk",
     val timeoutSeconds: Long = DEFAULT_INSTALL_TIMEOUT_SECONDS,
-)
+) {
+    init {
+        require(artifactType == "apk" || artifactType == "apks") {
+            "artifactType must be apk or apks."
+        }
+    }
+}
 
 data class InstalledPackageVersion(
     val versionCode: Long,
@@ -170,6 +178,9 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
     ) {
         var temporaryApk: File? = null
         var session: PackageInstaller.Session? = null
+        val childSessions = mutableListOf<PackageInstaller.Session>()
+        val temporarySplitFiles = mutableListOf<File>()
+        var sessionId = -1
         var committed = false
         var operationId: String? = null
 
@@ -178,26 +189,42 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
             temporaryApk = downloaded.file
             verifyDownload(request, downloaded)
 
-            val archive = inspectArchive(downloaded.file)
-            verifyArchive(request, archive)
-
             val packageInstaller = appContext.packageManager.packageInstaller
-            val params = PackageInstaller.SessionParams(
-                PackageInstaller.SessionParams.MODE_FULL_INSTALL,
-            ).apply {
-                setAppPackageName(request.expectedPackageName)
-                setSize(downloaded.sizeBytes)
-                setInstallReason(PackageManager.INSTALL_REASON_POLICY)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            if (request.artifactType == "apk") {
+                val archive = inspectArchive(downloaded.file)
+                verifyArchive(request, archive)
+                val params = installSessionParams().apply {
+                    setAppPackageName(request.expectedPackageName)
+                    setSize(downloaded.sizeBytes)
                 }
-            }
-            val sessionId = packageInstaller.createSession(params)
-            session = packageInstaller.openSession(sessionId)
+                sessionId = packageInstaller.createSession(params)
+                session = packageInstaller.openSession(sessionId)
+                writeApk(session!!, "base.apk", downloaded.file, downloaded.sizeBytes)
+            } else {
+                val splitFiles = extractSplitApks(downloaded.file)
+                require(splitFiles.isNotEmpty()) { "Le paquet .apks/.zip ne contient aucun APK." }
+                temporarySplitFiles += splitFiles.map { it.file }
+                val archives = splitFiles.map { it.file to inspectArchive(it.file) }
+                archives.forEach { (_, archive) -> verifySplitArchive(request, archive) }
+                require(splitFiles.any { it.entryName.substringAfterLast('/').startsWith("base") }) {
+                    "Le paquet de splits ne contient pas de base.apk."
+                }
+                verifySplitSignatures(archives.map { it.second })
 
-            session.openWrite("base.apk", 0, downloaded.sizeBytes).use { output ->
-                downloaded.file.inputStream().use { input -> input.copyTo(output, COPY_BUFFER_SIZE) }
-                session.fsync(output)
+                val parentParams = installSessionParams().apply { setMultiPackage() }
+                sessionId = packageInstaller.createSession(parentParams)
+                session = packageInstaller.openSession(sessionId)
+                archives.forEachIndexed { index, (file, archive) ->
+                    val childParams = installSessionParams().apply {
+                        setAppPackageName(archive.packageName)
+                        setSize(file.length())
+                    }
+                    val childId = packageInstaller.createSession(childParams)
+                    val child = packageInstaller.openSession(childId)
+                    childSessions += child
+                    writeApk(child, "split-$index.apk", file, file.length())
+                    session!!.addChildSessionId(childId)
+                }
             }
 
             operationId = UUID.randomUUID().toString()
@@ -226,7 +253,7 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                 resultIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
-            session.commit(pendingIntent.intentSender)
+            session!!.commit(pendingIntent.intentSender)
             committed = true
         } catch (exception: Exception) {
             operationId?.let {
@@ -238,14 +265,86 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                     )
                 }
             }
-            if (!committed) runCatching { session?.abandon() }
+            if (!committed) {
+                childSessions.forEach { child -> runCatching { child.abandon() } }
+                runCatching { session?.abandon() }
+            }
             callback(
                 false,
                 exception.message ?: "Échec de préparation de l'installation Android.",
             )
         } finally {
+            childSessions.forEach { child -> runCatching { child.close() } }
             runCatching { session?.close() }
+            temporarySplitFiles.forEach { it.delete() }
             temporaryApk?.delete()
+        }
+    }
+
+    private fun installSessionParams(): PackageInstaller.SessionParams =
+        PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
+            setInstallReason(PackageManager.INSTALL_REASON_POLICY)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
+            }
+        }
+
+    private fun writeApk(
+        session: PackageInstaller.Session,
+        name: String,
+        file: File,
+        sizeBytes: Long,
+    ) {
+        session.openWrite(name, 0, sizeBytes).use { output ->
+            file.inputStream().use { input -> input.copyTo(output, COPY_BUFFER_SIZE) }
+            session.fsync(output)
+        }
+    }
+
+    private fun extractSplitApks(archive: File): List<ExtractedSplit> {
+        val extracted = mutableListOf<ExtractedSplit>()
+        var totalBytes = 0L
+        try {
+            ZipInputStream(archive.inputStream().buffered()).use { input ->
+                while (true) {
+                    val entry = input.nextEntry ?: break
+                    if (entry.isDirectory || !entry.name.lowercase().endsWith(".apk")) {
+                        input.closeEntry()
+                        continue
+                    }
+                    require(extracted.size < MAX_SPLIT_COUNT) {
+                        "Le paquet de splits contient trop de fichiers APK."
+                    }
+                    val output = File.createTempFile("mdm-split-", ".apk", appContext.cacheDir)
+                    var entryBytes = 0L
+                    try {
+                        output.outputStream().use { out ->
+                            val buffer = ByteArray(COPY_BUFFER_SIZE)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                entryBytes += count
+                                totalBytes += count
+                                require(entryBytes <= MAX_APK_BYTES && totalBytes <= MAX_APK_BYTES) {
+                                    "Le paquet de splits dépasse la limite de $MAX_APK_MEBIBYTES Mio."
+                                }
+                                out.write(buffer, 0, count)
+                            }
+                        }
+                        require(entryBytes > 0L) { "Un fichier APK du paquet est vide." }
+                        extracted += ExtractedSplit(entry.name, output)
+                    } catch (exception: Exception) {
+                        output.delete()
+                        throw exception
+                    } finally {
+                        input.closeEntry()
+                    }
+                }
+            }
+            return extracted
+        } catch (exception: Exception) {
+            extracted.forEach { it.file.delete() }
+            throw exception
         }
     }
 
@@ -341,6 +440,25 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
         }
         if (request.expectedPackageName == appContext.packageName) {
             verifyAgentSignature(archive)
+        }
+    }
+
+    private fun verifySplitArchive(request: AppInstallRequest, archive: PackageInfo) {
+        check(archive.packageName == request.expectedPackageName) {
+            "Un split APK cible '${archive.packageName}' au lieu de '${request.expectedPackageName}'."
+        }
+    }
+
+    private fun verifySplitSignatures(archives: List<PackageInfo>) {
+        val signerSets = archives.map { archive ->
+            val signing = requireNotNull(archive.signingInfo) {
+                "La signature d'un split APK est indisponible."
+            }
+            signing.apkContentsSigners.map(::certificateSha256).toSet()
+        }
+        val first = signerSets.firstOrNull() ?: return
+        require(signerSets.all { it == first }) {
+            "Les APK du paquet de splits ne sont pas signés avec le même certificat."
         }
     }
 
@@ -475,8 +593,14 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
         val sha256: String,
     )
 
+    private data class ExtractedSplit(
+        val entryName: String,
+        val file: File,
+    )
+
     private companion object {
         const val COPY_BUFFER_SIZE = 64 * 1024
+        const val MAX_SPLIT_COUNT = 32
         val SHA256_PATTERN = Regex("[0-9a-fA-F]{64}")
     }
 }

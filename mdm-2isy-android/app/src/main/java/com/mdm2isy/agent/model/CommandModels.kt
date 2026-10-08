@@ -44,6 +44,7 @@ data class CommandPayload(
     val highAccuracy: Boolean? = null,
     val url: String? = null,
     val packageName: String? = null,
+    val artifactType: String? = null,
 ) {
     init {
         require(message == null || message.length <= 500) {
@@ -51,6 +52,9 @@ data class CommandPayload(
         }
         require(timeoutSeconds == null || timeoutSeconds in 5..300) {
             "timeoutSeconds must be between 5 and 300."
+        }
+        require(artifactType == null || artifactType in setOf("apk", "apks")) {
+            "artifactType must be apk or apks."
         }
     }
 }

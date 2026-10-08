@@ -231,6 +231,7 @@ class DeviceCommandExecutor(
             expectedVersionCode = updateMetadata?.versionCode,
             expectedVersionName = updateMetadata?.versionName,
             expectedSha256 = updateMetadata?.sha256,
+            artifactType = command.payload.artifactType ?: "apk",
             timeoutSeconds = command.payload.timeoutSeconds?.toLong()
                 ?: DEFAULT_INSTALL_TIMEOUT_SECONDS,
         )

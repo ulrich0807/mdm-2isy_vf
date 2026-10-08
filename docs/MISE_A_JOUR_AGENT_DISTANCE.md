@@ -34,3 +34,13 @@ version ne modifie jamais le fichier téléchargé par une vague déjà lancée.
 
 Le chemin générique de déploiement d'applications refuse volontairement le
 package `com.mdm2isy.agent`. Il faut toujours passer par l'action dédiée.
+
+## Applications avec splits Android
+
+Une application distribuée par Google Play peut être fournie sous forme de
+paquet `.apks` ou `.zip` contenant `base.apk` et ses `split_*.apk`. Le fichier
+peut être chargé depuis **Applications** comme une application blanche. Le MDM
+conserve le type d'artefact et l'agent `0.1.12` ou supérieur installe tous les
+APK dans une session multi-package Android. Les terminaux plus anciens sont
+refusés avec un message explicite : mettez d'abord leur agent à jour à
+`0.1.12`.

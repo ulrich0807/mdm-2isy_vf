@@ -9,7 +9,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class App extends Model
 {
     use HasFactory;
-    protected $fillable = ['organization_id', 'nom', 'pkg', 'type', 'ver', 'chemin_apk'];
+    protected $fillable = [
+        'organization_id',
+        'nom',
+        'pkg',
+        'type',
+        'ver',
+        'chemin_apk',
+        'artifact_type',
+    ];
 
     public function organization(): BelongsTo
     {

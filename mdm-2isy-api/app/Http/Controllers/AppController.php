@@ -8,6 +8,7 @@ use App\Services\AgentReleaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AppController extends Controller
@@ -33,10 +34,14 @@ class AppController extends Controller
             'chemin_apk' => $this->apkUploadRules(),
         ], $this->apkUploadValidationMessages());
         $this->rejectReservedAgentPackage($data['pkg']);
-        unset($data['chemin_apk']);
-
         if ($request->hasFile('chemin_apk')) {
-            $data['chemin_apk'] = $request->file('chemin_apk')->store('applications');
+            /** @var UploadedFile $artifact */
+            $artifact = $request->file('chemin_apk');
+            $data['chemin_apk'] = $artifact->store('applications');
+            $data['artifact_type'] = $this->artifactType($artifact);
+        } else {
+            unset($data['chemin_apk']);
+            $data['artifact_type'] = 'apk';
         }
         $app = App::create([...$data, 'organization_id' => $organization->id]);
 
@@ -71,14 +76,17 @@ class AppController extends Controller
             'chemin_apk' => $this->apkUploadRules(),
         ], $this->apkUploadValidationMessages());
         $this->rejectReservedAgentPackage($data['pkg'] ?? $app->pkg);
-        unset($data['chemin_apk']);
-
         if ($request->hasFile('chemin_apk')) {
-            $newPath = $request->file('chemin_apk')->store('applications');
+            /** @var UploadedFile $artifact */
+            $artifact = $request->file('chemin_apk');
+            $newPath = $artifact->store('applications');
             if ($app->chemin_apk) {
                 Storage::disk('local')->delete($app->chemin_apk);
             }
             $data['chemin_apk'] = $newPath;
+            $data['artifact_type'] = $this->artifactType($artifact);
+        } else {
+            unset($data['chemin_apk']);
         }
 
         $app->update($data);
@@ -96,8 +104,8 @@ class AppController extends Controller
 
         return response()->download(
             Storage::disk('local')->path($app->chemin_apk),
-            $app->pkg.'.apk',
-            ['Content-Type' => 'application/vnd.android.package-archive'],
+            $app->pkg.($app->artifact_type === 'apks' ? '.apks' : '.apk'),
+            ['Content-Type' => $app->artifact_type === 'apks' ? 'application/zip' : 'application/vnd.android.package-archive'],
         );
     }
 
@@ -124,8 +132,21 @@ class AppController extends Controller
 
         return [
             'chemin_apk.max' => "Le fichier APK ne doit pas dépasser {$maxMebibytes} Mio.",
-            'chemin_apk.mimetypes' => 'Le fichier sélectionné doit être un paquet APK valide.',
+            'chemin_apk.mimetypes' => 'Le fichier sélectionné doit être un APK ou un paquet .apks/.zip Android valide.',
         ];
+    }
+
+    private function artifactType(UploadedFile $artifact): string
+    {
+        $extension = strtolower((string) $artifact->getClientOriginalExtension());
+
+        if (! in_array($extension, ['apk', 'apks', 'zip'], true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'chemin_apk' => 'Utilisez un fichier .apk autonome ou un paquet .apks/.zip contenant les splits Android.',
+            ]);
+        }
+
+        return $extension === 'apk' ? 'apk' : 'apks';
     }
 
     private function rejectReservedAgentPackage(string $packageName): void
