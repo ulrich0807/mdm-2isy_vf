@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
+  AgentUpdateDeploymentResult,
+  AgentUpdateInformation,
   CreateDeviceCommandPayload,
   CreatedEnrollment,
   DeviceCommand,
@@ -49,7 +51,18 @@ export class Devices implements OnInit {
   profileFeedback: Record<number, string> = {};
 
   isSuperAdmin = false;
+  canManageAgentUpdates = false;
   selectedOrganizationId: number | null = null;
+
+  agentUpdateInfo: AgentUpdateInformation | null = null;
+  agentUpdateLoading = false;
+  agentUpdateMetadataError = '';
+  afficherModalAgentUpdate = false;
+  agentUpdateMode: 'pilot' | 'batch' = 'pilot';
+  agentUpdateSelectedIds: number[] = [];
+  agentUpdateSubmitting = false;
+  agentUpdateError = '';
+  agentUpdateResult: AgentUpdateDeploymentResult | null = null;
 
   srch = '';
   fMod = '';
@@ -104,6 +117,7 @@ export class Devices implements OnInit {
 
   ngOnInit(): void {
     this.isSuperAdmin = this.auth.role === 'super_admin';
+    this.canManageAgentUpdates = this.auth.role === 'super_admin';
     this.selectedOrganizationId = this.auth.user?.organization_id ?? null;
 
     if (this.isSuperAdmin) {
@@ -169,6 +183,181 @@ export class Devices implements OnInit {
     this.chargerGroupes();
     this.chargerEnrollments();
     this.chargerProfils();
+    this.chargerAgentUpdate();
+  }
+
+  chargerAgentUpdate(): void {
+    if (!this.canManageAgentUpdates || this.agentUpdateLoading) {
+      return;
+    }
+
+    this.agentUpdateLoading = true;
+    this.agentUpdateMetadataError = '';
+    this.termSvc.getAgentUpdate().subscribe({
+      next: (res) => {
+        this.agentUpdateInfo = res.success ? res.data : null;
+        this.agentUpdateMetadataError = res.success
+          ? ''
+          : (res.message || "La version de l'agent est indisponible.");
+        this.agentUpdateLoading = false;
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.agentUpdateInfo = null;
+        this.agentUpdateMetadataError = this.apiError(
+          err,
+          "Impossible de vérifier la version publiée de l'agent.",
+        );
+        this.agentUpdateLoading = false;
+        this.cdRef.detectChanges();
+      },
+    });
+  }
+
+  ouvrirModalAgentUpdate(): void {
+    if (this.isSuperAdmin && this.selectedOrganizationId === null) {
+      this.contextError = 'Sélectionnez une organisation avant de déployer une mise à jour.';
+      return;
+    }
+    if (!this.agentUpdateInfo) {
+      this.contextError = this.agentUpdateMetadataError
+        || "La version publiée de l'agent n'est pas disponible.";
+      this.chargerAgentUpdate();
+      return;
+    }
+
+    this.agentUpdateMode = 'pilot';
+    this.agentUpdateSelectedIds = [];
+    this.agentUpdateError = '';
+    this.agentUpdateResult = null;
+    this.afficherModalAgentUpdate = true;
+  }
+
+  fermerModalAgentUpdate(): void {
+    if (this.agentUpdateSubmitting) {
+      return;
+    }
+    this.afficherModalAgentUpdate = false;
+    this.agentUpdateSelectedIds = [];
+    this.agentUpdateError = '';
+    this.agentUpdateResult = null;
+  }
+
+  changerModeAgentUpdate(mode: 'pilot' | 'batch'): void {
+    this.agentUpdateMode = mode;
+    this.agentUpdateSelectedIds = [];
+    this.agentUpdateError = '';
+    this.agentUpdateResult = null;
+  }
+
+  terminalNeedsAgentUpdate(terminal: Terminal): boolean {
+    const targetVersion = this.agentUpdateInfo?.release.version_name;
+    if (!targetVersion) {
+      return false;
+    }
+
+    const current = this.numericVersion(terminal.agent_version);
+    const target = this.numericVersion(targetVersion);
+    if (!current || !target) {
+      return true;
+    }
+
+    const length = Math.max(current.length, target.length);
+    for (let index = 0; index < length; index += 1) {
+      const currentPart = current[index] ?? 0;
+      const targetPart = target[index] ?? 0;
+      if (currentPart !== targetPart) {
+        return currentPart < targetPart;
+      }
+    }
+
+    return false;
+  }
+
+  canSelectForAgentUpdate(terminal: Terminal): boolean {
+    return this.canSendCommand(terminal) && this.terminalNeedsAgentUpdate(terminal);
+  }
+
+  isAgentUpdateSelected(terminal: Terminal): boolean {
+    return this.agentUpdateSelectedIds.includes(terminal.id);
+  }
+
+  toggleAgentUpdateTerminal(terminal: Terminal, selected: boolean): void {
+    if (!this.canSelectForAgentUpdate(terminal)) {
+      return;
+    }
+
+    if (!selected) {
+      this.agentUpdateSelectedIds = this.agentUpdateSelectedIds.filter((id) => id !== terminal.id);
+      return;
+    }
+
+    if (this.agentUpdateMode === 'pilot') {
+      this.agentUpdateSelectedIds = [terminal.id];
+      return;
+    }
+
+    const maximum = this.agentUpdateInfo?.rollout.batch_max_terminals ?? 100;
+    if (this.agentUpdateSelectedIds.length >= maximum) {
+      this.agentUpdateError = `Un lot ne peut pas dépasser ${maximum} terminaux.`;
+      return;
+    }
+
+    this.agentUpdateSelectedIds = [...this.agentUpdateSelectedIds, terminal.id];
+  }
+
+  selectAllAgentUpdateCandidates(): void {
+    if (this.agentUpdateMode !== 'batch') {
+      return;
+    }
+    const maximum = this.agentUpdateInfo?.rollout.batch_max_terminals ?? 100;
+    this.agentUpdateSelectedIds = this.terminaux
+      .filter((terminal) => this.canSelectForAgentUpdate(terminal))
+      .slice(0, maximum)
+      .map((terminal) => terminal.id);
+    this.agentUpdateError = '';
+  }
+
+  deployAgentUpdate(): void {
+    if (!this.agentUpdateSelectedIds.length || this.agentUpdateSubmitting) {
+      this.agentUpdateError = 'Sélectionnez au moins un terminal.';
+      return;
+    }
+
+    this.agentUpdateSubmitting = true;
+    this.agentUpdateError = '';
+    this.agentUpdateResult = null;
+    this.termSvc.deployAgentUpdate({
+      mode: this.agentUpdateMode,
+      terminal_ids: this.agentUpdateSelectedIds,
+      ...(this.isSuperAdmin && this.selectedOrganizationId !== null
+        ? { organization_id: this.selectedOrganizationId }
+        : {}),
+    }).subscribe({
+      next: (res) => {
+        this.agentUpdateSubmitting = false;
+        this.agentUpdateResult = res.data;
+        if (!res.success && !res.data?.accepted?.length) {
+          this.agentUpdateError = res.message || "Aucune mise à jour n'a été mise en file.";
+        }
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.agentUpdateSubmitting = false;
+        this.agentUpdateError = this.apiError(err, "Impossible de planifier la mise à jour de l'agent.");
+        this.cdRef.detectChanges();
+      },
+    });
+  }
+
+  agentReleaseHash(): string {
+    const hash = this.agentUpdateInfo?.release.sha256 ?? '';
+    return hash ? `${hash.slice(0, 12)}…${hash.slice(-8)}` : '—';
+  }
+
+  agentReleaseSize(): string {
+    const bytes = this.agentUpdateInfo?.release.size_bytes;
+    return bytes ? `${(bytes / (1024 * 1024)).toFixed(1)} Mio` : '—';
   }
 
   chargerFlotte(): void {
@@ -993,6 +1182,11 @@ export class Devices implements OnInit {
     return normalizedValue ? normalizedValue : '—';
   }
 
+  private numericVersion(value: string | null | undefined): number[] | null {
+    const match = value?.match(/\d+(?:\.\d+)+/);
+    return match ? match[0].split('.').map((part) => Number(part)) : null;
+  }
+
   private emptyEnrollmentForm(): {
     device_group_id: number | null;
     label: string;
@@ -1101,6 +1295,12 @@ export class Devices implements OnInit {
     this.commandFeedback = {};
     this.expandedCommandTerminalPublicId = null;
     this.fermerModalWipe();
+    if (!this.agentUpdateSubmitting) {
+      this.afficherModalAgentUpdate = false;
+      this.agentUpdateSelectedIds = [];
+      this.agentUpdateResult = null;
+      this.agentUpdateError = '';
+    }
   }
 
   private clearContext(): void {

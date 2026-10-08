@@ -154,6 +154,40 @@ export interface CreateDeviceCommandPayload {
   current_password?: string;
 }
 
+export interface AgentReleaseMetadata {
+  package_name: string;
+  version_code: number;
+  version_name: string;
+  sha256: string;
+  size_bytes: number;
+  download_url: string;
+}
+
+export interface AgentUpdateInformation {
+  release: AgentReleaseMetadata;
+  rollout: {
+    pilot_max_terminals: number;
+    batch_max_terminals: number;
+    offline_queue_days: number;
+  };
+}
+
+export interface AgentUpdateDeploymentResult {
+  release: Pick<AgentReleaseMetadata, 'version_code' | 'version_name' | 'sha256'>;
+  mode: 'pilot' | 'batch';
+  accepted: {
+    terminal_id: number;
+    command_id: string;
+    status: DeviceCommandStatus;
+    replayed: boolean;
+  }[];
+  rejected: {
+    terminal_id: number;
+    reason: string;
+    message: string;
+  }[];
+}
+
 export interface Alert {
   id: number;
   terminal_id: number;

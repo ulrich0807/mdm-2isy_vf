@@ -8,6 +8,7 @@ use App\Models\App;
 use App\Models\Terminal;
 use App\Models\User;
 use App\Services\DeviceCommandService;
+use App\Services\AgentReleaseService;
 use App\Support\OrganizationAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -194,6 +195,15 @@ class TerminalCommandController extends Controller
         ])->validate();
 
         $payload = $this->validatedPayload($data['type'], $data['payload'] ?? []);
+
+        if (
+            $data['type'] === DeviceCommand::TYPE_INSTALL_APP
+            && ($payload['packageName'] ?? null) === AgentReleaseService::PACKAGE_NAME
+        ) {
+            throw ValidationException::withMessages([
+                'payload.packageName' => "Utilisez l'action dédiée « Mettre à jour l'agent ».",
+            ]);
+        }
 
         if ($data['type'] === DeviceCommand::TYPE_WIPE && ! in_array($actor->role, ['admin', 'super_admin'], true)) {
             throw new AuthorizationException("L'effacement est réservé aux administrateurs.");

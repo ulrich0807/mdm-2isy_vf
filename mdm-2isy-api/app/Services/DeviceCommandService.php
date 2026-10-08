@@ -111,7 +111,7 @@ class DeviceCommandService
                     'idempotency_key' => $idempotencyHash,
                     'delivery_attempts' => 0,
                     'queued_at' => $timestamp,
-                    'expires_at' => $timestamp->copy()->addMinutes(self::EXPIRATION_MINUTES[$type]),
+                    'expires_at' => $this->expirationAt($timestamp, $type, $payload),
                 ]);
 
                 $this->recordEvent(
@@ -683,6 +683,24 @@ class DeviceCommandService
             }
         };
         $walk($value);
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function expirationAt(
+        \Illuminate\Support\Carbon $timestamp,
+        string $type,
+        array $payload,
+    ): \Illuminate\Support\Carbon {
+        if (
+            $type === DeviceCommand::TYPE_INSTALL_APP
+            && AgentReleaseService::isAgentUpdatePayload($payload)
+        ) {
+            $days = max(1, min(30, (int) config('mdm.agent_update_queue_days', 7)));
+
+            return $timestamp->copy()->addDays($days);
+        }
+
+        return $timestamp->copy()->addMinutes(self::EXPIRATION_MINUTES[$type]);
     }
 
     private function canonicalJson(mixed $value): string

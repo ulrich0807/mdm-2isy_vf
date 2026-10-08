@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\App;
 use App\Support\OrganizationAccess;
+use App\Services\AgentReleaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -31,6 +32,7 @@ class AppController extends Controller
             'ver' => ['nullable', 'string', 'max:100'],
             'chemin_apk' => $this->apkUploadRules(),
         ], $this->apkUploadValidationMessages());
+        $this->rejectReservedAgentPackage($data['pkg']);
         unset($data['chemin_apk']);
 
         if ($request->hasFile('chemin_apk')) {
@@ -68,6 +70,7 @@ class AppController extends Controller
             'ver' => ['nullable', 'string', 'max:100'],
             'chemin_apk' => $this->apkUploadRules(),
         ], $this->apkUploadValidationMessages());
+        $this->rejectReservedAgentPackage($data['pkg'] ?? $app->pkg);
         unset($data['chemin_apk']);
 
         if ($request->hasFile('chemin_apk')) {
@@ -123,5 +126,14 @@ class AppController extends Controller
             'chemin_apk.max' => "Le fichier APK ne doit pas dépasser {$maxMebibytes} Mio.",
             'chemin_apk.mimetypes' => 'Le fichier sélectionné doit être un paquet APK valide.',
         ];
+    }
+
+    private function rejectReservedAgentPackage(string $packageName): void
+    {
+        if ($packageName === AgentReleaseService::PACKAGE_NAME) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'pkg' => "Le package de l'agent MDM est réservé. Utilisez l'action dédiée de mise à jour.",
+            ]);
+        }
     }
 }

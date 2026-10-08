@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import {
   ApiResponse,
+  AgentUpdateDeploymentResult,
+  AgentUpdateInformation,
   CreateDeviceCommandPayload,
   DeviceCommand,
   Terminal,
@@ -77,6 +79,23 @@ export class TermService {
     return this.http.post<ApiResponse<DeviceCommand>>(`${this.apiUrl}/${id}/install-app`, {
       app_id: appId,
     });
+  }
+
+  getAgentUpdate(): Observable<ApiResponse<AgentUpdateInformation>> {
+    return this.http.get<ApiResponse<AgentUpdateInformation>>(
+      `${environment.apiUrl}/agent-updates`,
+    );
+  }
+
+  deployAgentUpdate(payload: {
+    organization_id?: number;
+    mode: 'pilot' | 'batch';
+    terminal_ids: number[];
+  }): Observable<ApiResponse<AgentUpdateDeploymentResult>> {
+    return this.http.post<ApiResponse<AgentUpdateDeploymentResult>>(
+      `${environment.apiUrl}/agent-updates`,
+      payload,
+    );
   }
 
   getLocationHistory(id: number, hours: number = 24): Observable<ApiResponse<{lat: number, lng: number, recorded_at: string}[]>> {

@@ -8,6 +8,7 @@ use App\Models\Log;
 use App\Models\Terminal;
 use App\Models\User;
 use App\Services\DeviceCommandService;
+use App\Services\AgentReleaseService;
 use App\Support\OrganizationAccess;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -34,6 +35,11 @@ class ApplicationDeploymentController extends Controller
             ->where('type', 'blanche')
             ->findOrFail($id);
         abort_unless($app->chemin_apk, 422, "Aucun fichier APK n'est disponible pour cette application.");
+        abort_if(
+            $app->pkg === AgentReleaseService::PACKAGE_NAME,
+            422,
+            "Utilisez l'action dédiée « Mettre à jour l'agent ».",
+        );
 
         $data = $request->validate([
             'terminal_ids' => ['required', 'array', 'min:1', 'max:100'],

@@ -1,6 +1,7 @@
 package com.mdm2isy.agent.command
 
 import android.content.Context
+import com.mdm2isy.agent.BuildConfig
 import com.mdm2isy.agent.device.DeviceAdminController
 import com.mdm2isy.agent.device.DeviceAdminFailureReason
 import com.mdm2isy.agent.device.DeviceAdminOperationResult
@@ -53,11 +54,13 @@ class DeviceCommandExecutor(
     private val locationProvider: DeviceLocationProvider,
     private val appInstaller: AppInstaller,
     private val clock: Clock = Clock.systemUTC(),
+    private val agentPackageName: String = BuildConfig.APPLICATION_ID,
 ) {
     constructor(context: Context) : this(
         adminController = DeviceAdminController(context),
         locationProvider = DeviceLocationProvider(context),
         appInstaller = AndroidAppInstaller(context),
+        agentPackageName = context.packageName,
         context = context,
     )
 
@@ -68,8 +71,9 @@ class DeviceCommandExecutor(
         locationProvider: DeviceLocationProvider,
         appInstaller: AppInstaller,
         context: Context,
-        clock: Clock = Clock.systemUTC()
-    ) : this(adminController, locationProvider, appInstaller, clock) {
+        clock: Clock = Clock.systemUTC(),
+        agentPackageName: String = context.packageName,
+    ) : this(adminController, locationProvider, appInstaller, clock, agentPackageName) {
         this.appContext = context.applicationContext
     }
 
@@ -208,12 +212,39 @@ class DeviceCommandExecutor(
             )
         }
 
-        appInstaller.installSilently(apkUrl, packageName) { success, error ->
+        val updateMetadata = if (packageName == agentPackageName) {
+            AgentUpdateMarker.parse(command.payload.message) ?: return immediate(
+                callback,
+                CommandExecutionResult.Failure(
+                    CommandExecutionErrorCodes.INVALID_COMMAND_PAYLOAD,
+                    "Mise à jour de l'agent refusée : le marqueur de version est absent ou invalide.",
+                ),
+            )
+        } else {
+            null
+        }
+
+        val installRequest = AppInstallRequest(
+            commandPublicId = command.publicId,
+            apkUrl = apkUrl,
+            expectedPackageName = packageName,
+            expectedVersionCode = updateMetadata?.versionCode,
+            expectedVersionName = updateMetadata?.versionName,
+            expectedSha256 = updateMetadata?.sha256,
+            timeoutSeconds = command.payload.timeoutSeconds?.toLong()
+                ?: DEFAULT_INSTALL_TIMEOUT_SECONDS,
+        )
+
+        appInstaller.installSilently(installRequest) { success, error ->
             val result = if (success) {
                 CommandExecutionResult.Success(
                     CommandExecutionProof(
                         executedAt = executedAt(),
-                        message = "Installation de l'application lancée avec succès.",
+                        message = if (updateMetadata != null) {
+                            "Mise à jour de l'agent ${updateMetadata.versionName} confirmée."
+                        } else {
+                            "Installation de l'application terminée avec succès."
+                        },
                     ),
                 )
             } else {

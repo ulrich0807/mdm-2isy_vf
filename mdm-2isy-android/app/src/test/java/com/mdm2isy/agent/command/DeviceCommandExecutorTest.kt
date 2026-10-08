@@ -127,7 +127,71 @@ class DeviceCommandExecutorTest {
             ),
         ) { result = it }
 
-        assertEquals("com.example.application", installer.expectedPackageName)
+        assertEquals("com.example.application", installer.request?.expectedPackageName)
+        assertTrue(result is CommandExecutionResult.Success)
+    }
+
+    @Test
+    fun `self install without the strict update marker is rejected before PackageInstaller`() {
+        val installer = FakeAppInstaller()
+        val executor = DeviceCommandExecutor(
+            adminController = DeviceAdminController(
+                FakePolicyGateway(adminActive = true, deviceOwner = true),
+            ),
+            locationProvider = unusedLocationProvider(),
+            appInstaller = installer,
+            clock = FIXED_CLOCK,
+        )
+
+        var result: CommandExecutionResult? = null
+        executor.execute(
+            command(
+                "install_app",
+                CommandPayload(
+                    url = "https://api.example.test/mdm-agent.apk",
+                    packageName = "com.mdm2isy.agent",
+                ),
+            ),
+        ) { result = it }
+
+        assertEquals(null, installer.request)
+        assertEquals(
+            CommandExecutionErrorCodes.INVALID_COMMAND_PAYLOAD,
+            (result as CommandExecutionResult.Failure).errorCode,
+        )
+    }
+
+    @Test
+    fun `strict self update marker forwards version and hash to durable installer`() {
+        val installer = FakeAppInstaller()
+        val executor = DeviceCommandExecutor(
+            adminController = DeviceAdminController(
+                FakePolicyGateway(adminActive = true, deviceOwner = true),
+            ),
+            locationProvider = unusedLocationProvider(),
+            appInstaller = installer,
+            clock = FIXED_CLOCK,
+        )
+        val sha256 = "ab".repeat(32)
+
+        var result: CommandExecutionResult? = null
+        executor.execute(
+            command(
+                "install_app",
+                CommandPayload(
+                    message = "MDM_AGENT_UPDATE_V1|version_code=12|version_name=0.1.11|sha256=$sha256",
+                    timeoutSeconds = 300,
+                    url = "https://api.example.test/mdm-agent.apk",
+                    packageName = "com.mdm2isy.agent",
+                ),
+            ),
+        ) { result = it }
+
+        val request = requireNotNull(installer.request)
+        assertEquals(12L, request.expectedVersionCode)
+        assertEquals("0.1.11", request.expectedVersionName)
+        assertEquals(sha256, request.expectedSha256)
+        assertEquals(300L, request.timeoutSeconds)
         assertTrue(result is CommandExecutionResult.Success)
     }
 
@@ -245,15 +309,14 @@ class DeviceCommandExecutorTest {
     }
 
     private class FakeAppInstaller : AppInstaller {
-        var expectedPackageName: String? = null
+        var request: AppInstallRequest? = null
             private set
 
         override fun installSilently(
-            apkUrl: String,
-            expectedPackageName: String,
+            request: AppInstallRequest,
             callback: (Boolean, String?) -> Unit,
         ) {
-            this.expectedPackageName = expectedPackageName
+            this.request = request
             callback(true, null)
         }
 

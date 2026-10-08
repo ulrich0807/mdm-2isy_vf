@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertController;
+use App\Http\Controllers\AgentUpdateController;
 use App\Http\Controllers\ApplicationDeploymentController;
 use App\Http\Controllers\AppController;
 use App\Http\Controllers\AuthCtrl;
@@ -118,6 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/terminals/{id}/wipe', [TerminalCommandController::class, 'wipe'])->middleware('role:admin,super_admin')->whereNumber('id');
     Route::post('/terminals/{id}/install-app', [TerminalCommandController::class, 'install'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
     Route::post('/terminals/{id}/uninstall-app', [TerminalCommandController::class, 'uninstallApp'])->middleware('role:operator,admin,super_admin')->whereNumber('id');
+
+    // Mise à jour contrôlée de l'agent : endpoint dédié, jamais accessible aux opérateurs.
+    Route::get('/agent-updates', [AgentUpdateController::class, 'show'])->middleware('role:super_admin');
+    Route::post('/agent-updates', [AgentUpdateController::class, 'store'])->middleware('role:super_admin');
 
     // Gestion Licences
     Route::get('/lics', [LicController::class, 'index']);

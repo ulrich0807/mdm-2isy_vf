@@ -4,9 +4,20 @@
       <h3 class="fw-bold m-0 text-dark">Flotte de Terminaux</h3>
       <p class="text-muted small m-0">Enrôlement et gestion centralisée des appareils assignés</p>
     </div>
-    <button (click)="ouvrirModal()" class="btn px-4 py-2 fw-bold rounded-pill shadow-sm" style="background-color: #f69323; color: #000;">
-      + Enrôler un terminal
-    </button>
+    <div class="d-flex flex-wrap justify-content-end gap-2">
+      <button
+        *ngIf="canManageAgentUpdates"
+        type="button"
+        (click)="ouvrirModalAgentUpdate()"
+        class="btn px-4 py-2 fw-bold rounded-pill shadow-sm border"
+        style="background-color: #575656; color: #fff;"
+        [disabled]="agentUpdateLoading || !agentUpdateInfo || (isSuperAdmin && selectedOrganizationId === null)"
+        [title]="agentUpdateMetadataError || 'Déployer progressivement la dernière version signée de l\'agent'"
+      >{{ agentUpdateLoading ? 'Vérification…' : '↻ Mettre à jour l’agent' }}</button>
+      <button (click)="ouvrirModal()" class="btn px-4 py-2 fw-bold rounded-pill shadow-sm" style="background-color: #f69323; color: #000;">
+        + Enrôler un terminal
+      </button>
+    </div>
   </div>
 
   <div *ngIf="contextError" class="alert alert-danger py-2 small">{{ contextError }}</div>
@@ -472,6 +483,136 @@
           <button type="button" (click)="fermerModal()" class="btn btn-dark fw-bold px-4">J'ai copié le jeton</button>
         </div>
       </ng-template>
+    </div>
+  </div>
+
+  <div
+    *ngIf="afficherModalAgentUpdate"
+    class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-start p-3 overflow-auto"
+    style="background-color: rgba(0,0,0,0.65); z-index: 1070;"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="agent-update-title"
+  >
+    <div class="card border-0 shadow-lg rounded-4 bg-white my-4" style="width: 100%; max-width: 820px;">
+      <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between gap-3">
+        <div>
+          <h5 id="agent-update-title" class="fw-bold text-dark mb-1">Mettre à jour l’agent MDM</h5>
+          <p class="text-muted small mb-0">Déploiement contrôlé de la version signée publiée.</p>
+        </div>
+        <button type="button" class="btn-close" (click)="fermerModalAgentUpdate()" [disabled]="agentUpdateSubmitting" aria-label="Fermer"></button>
+      </div>
+
+      <div class="card-body p-4" *ngIf="agentUpdateInfo as updateInfo">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="bg-light border rounded-3 p-3 h-100">
+              <div class="small text-muted fw-bold">VERSION CIBLE</div>
+              <div class="fs-5 fw-bold">{{ updateInfo.release.version_name }}</div>
+              <div class="small text-muted">Code {{ updateInfo.release.version_code }}</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="bg-light border rounded-3 p-3 h-100">
+              <div class="small text-muted fw-bold">TAILLE</div>
+              <div class="fs-5 fw-bold">{{ agentReleaseSize() }}</div>
+              <div class="small text-muted">APK Android signé</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="bg-light border rounded-3 p-3 h-100">
+              <div class="small text-muted fw-bold">EMPREINTE SHA-256</div>
+              <div class="font-monospace fw-bold text-break">{{ agentReleaseHash() }}</div>
+              <div class="small text-success">Intégrité contrôlée</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-warning small">
+          Commencez par <strong>un terminal pilote</strong>. Après confirmation de son retour en ligne avec la version
+          {{ updateInfo.release.version_name }}, lancez un lot. Les appareils hors ligne gardent la commande pendant
+          {{ updateInfo.rollout.offline_queue_days }} jours.
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="Mode de déploiement">
+          <button
+            type="button"
+            class="btn fw-bold"
+            [ngClass]="agentUpdateMode === 'pilot' ? 'btn-dark' : 'btn-light border'"
+            (click)="changerModeAgentUpdate('pilot')"
+            [disabled]="agentUpdateSubmitting"
+          >1. Pilote (1 terminal)</button>
+          <button
+            type="button"
+            class="btn fw-bold"
+            [ngClass]="agentUpdateMode === 'batch' ? 'btn-dark' : 'btn-light border'"
+            (click)="changerModeAgentUpdate('batch')"
+            [disabled]="agentUpdateSubmitting"
+          >2. Lot (jusqu’à {{ updateInfo.rollout.batch_max_terminals }})</button>
+          <button
+            *ngIf="agentUpdateMode === 'batch'"
+            type="button"
+            class="btn btn-link ms-auto"
+            (click)="selectAllAgentUpdateCandidates()"
+            [disabled]="agentUpdateSubmitting"
+          >Sélectionner tous les éligibles</button>
+        </div>
+
+        <div class="border rounded-3 overflow-hidden mb-3" style="max-height: 330px; overflow-y: auto;">
+          <div *ngIf="terminaux.length === 0" class="text-center text-muted p-4">Aucun terminal dans cette organisation.</div>
+          <label
+            *ngFor="let terminal of terminaux"
+            class="d-flex align-items-center gap-3 px-3 py-3 border-bottom"
+            [class.bg-light]="isAgentUpdateSelected(terminal)"
+            [class.opacity-50]="!canSelectForAgentUpdate(terminal)"
+          >
+            <input
+              type="checkbox"
+              class="form-check-input mt-0"
+              [checked]="isAgentUpdateSelected(terminal)"
+              [disabled]="!canSelectForAgentUpdate(terminal) || agentUpdateSubmitting"
+              (change)="toggleAgentUpdateTerminal(terminal, $any($event.target).checked)"
+            >
+            <span class="flex-grow-1">
+              <span class="fw-bold text-dark d-block">{{ terminalLabel(terminal) }} · {{ terminalModel(terminal) }}</span>
+              <span class="small text-muted">IMEI {{ terminalImei(terminal) }} · Agent {{ terminal.agent_version || 'version inconnue' }}</span>
+            </span>
+            <span class="badge" [ngClass]="terminalStatus(terminal) === 'En ligne' ? 'bg-success' : 'bg-warning text-dark'">
+              {{ terminalStatus(terminal) }}
+            </span>
+            <span *ngIf="!terminalNeedsAgentUpdate(terminal)" class="badge bg-secondary">Déjà à jour</span>
+          </label>
+        </div>
+
+        <div *ngIf="agentUpdateError" class="alert alert-danger py-2 small">{{ agentUpdateError }}</div>
+
+        <div *ngIf="agentUpdateResult as result" class="alert mb-3" [ngClass]="result.accepted.length ? 'alert-success' : 'alert-warning'">
+          <div class="fw-bold">{{ result.accepted.length }} mise(s) à jour mise(s) en file.</div>
+          <ul *ngIf="result.rejected.length" class="small mb-0 mt-2">
+            <li *ngFor="let rejection of result.rejected">
+              Terminal {{ rejection.terminal_id }} : {{ rejection.message }}
+            </li>
+          </ul>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div class="small text-muted">
+            {{ agentUpdateSelectedIds.length }} terminal(aux) sélectionné(s).
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light border fw-bold px-4" (click)="fermerModalAgentUpdate()" [disabled]="agentUpdateSubmitting">
+              {{ agentUpdateResult ? 'Fermer' : 'Annuler' }}
+            </button>
+            <button
+              type="button"
+              class="btn fw-bold px-4"
+              style="background-color: #f69323; color: #000;"
+              (click)="deployAgentUpdate()"
+              [disabled]="agentUpdateSubmitting || agentUpdateSelectedIds.length === 0 || !!agentUpdateResult"
+            >{{ agentUpdateSubmitting ? 'Mise en file…' : (agentUpdateMode === 'pilot' ? 'Lancer le pilote' : 'Lancer le lot') }}</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
