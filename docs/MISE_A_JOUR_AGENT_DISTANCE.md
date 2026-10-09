@@ -37,8 +37,8 @@ package `com.mdm2isy.agent`. Il faut toujours passer par l'action dédiée.
 
 ## Applications avec splits Android
 
-Une application distribuée par Google Play peut être fournie sous forme de
-paquet `.apks` ou `.zip` contenant `base.apk` et ses `split_*.apk`. Le fichier
+Une application distribuée par Google Play ou APKPure peut être fournie sous forme de
+paquet `.apks`, `.xapk` ou `.zip` contenant `base.apk` et ses `split_*.apk`. Le fichier
 peut être chargé depuis **Applications** comme une application blanche. Le MDM
 conserve le type d'artefact et l'agent `0.1.12` ou supérieur installe tous les
 APK dans une session multi-package Android. Les terminaux plus anciens sont

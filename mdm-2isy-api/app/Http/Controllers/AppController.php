@@ -140,9 +140,9 @@ class AppController extends Controller
     {
         $extension = strtolower((string) $artifact->getClientOriginalExtension());
 
-        if (! in_array($extension, ['apk', 'apks', 'zip'], true)) {
+        if (! in_array($extension, ['apk', 'apks', 'xapk', 'zip'], true)) {
             throw \Illuminate\Validation\ValidationException::withMessages([
-                'chemin_apk' => 'Utilisez un fichier .apk autonome ou un paquet .apks/.zip contenant les splits Android.',
+                'chemin_apk' => 'Utilisez un fichier .apk autonome ou un paquet .apks/.xapk/.zip contenant les splits Android.',
             ]);
         }
 

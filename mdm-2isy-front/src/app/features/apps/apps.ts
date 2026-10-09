@@ -132,8 +132,8 @@ export class Apps implements OnInit {
     if (!file) return;
 
     const fileName = file.name.toLowerCase();
-    if (!fileName.endsWith('.apk') && !fileName.endsWith('.apks') && !fileName.endsWith('.zip')) {
-      this.uploadError = "Sélectionnez un APK autonome ou un paquet .apks/.zip contenant les splits Android.";
+    if (!fileName.endsWith('.apk') && !fileName.endsWith('.apks') && !fileName.endsWith('.xapk') && !fileName.endsWith('.zip')) {
+      this.uploadError = "Sélectionnez un APK autonome ou un paquet .apks/.xapk/.zip contenant les splits Android.";
       input.value = '';
       return;
     }
