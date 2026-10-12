@@ -19,6 +19,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import java.util.UUID
+import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
 
@@ -190,7 +191,15 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
             verifyDownload(request, downloaded)
 
             val packageInstaller = appContext.packageManager.packageInstaller
-            if (request.artifactType == "apk") {
+            // Older dashboard records may not have persisted artifactType yet.
+            // Detect a XAPK/APKS archive by its nested APK entries so it is
+            // still installed as a multi-package session instead of being
+            // handed to PackageManager as one invalid APK.
+            val effectiveArtifactType = if (
+                request.artifactType == "apk" && isSplitArchive(downloaded.file)
+            ) "apks" else request.artifactType
+
+            if (effectiveArtifactType == "apk") {
                 val archive = inspectArchive(downloaded.file)
                 verifyArchive(request, archive)
                 val params = installSessionParams().apply {
@@ -206,8 +215,8 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
                 temporarySplitFiles += splitFiles.map { it.file }
                 val archives = splitFiles.map { it.file to inspectArchive(it.file) }
                 archives.forEach { (_, archive) -> verifySplitArchive(request, archive) }
-                require(splitFiles.any { it.entryName.substringAfterLast('/').startsWith("base") }) {
-                    "Le paquet de splits ne contient pas de base.apk."
+                require(splitFiles.any { isBaseSplitEntry(it.entryName) }) {
+                    "Le paquet de splits ne contient pas d'APK principal."
                 }
                 verifySplitSignatures(archives.map { it.second })
 
@@ -346,6 +355,27 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
             extracted.forEach { it.file.delete() }
             throw exception
         }
+    }
+
+    private fun isSplitArchive(file: File): Boolean = runCatching {
+        ZipFile(file).use { zip ->
+            val apkEntries = zip.entries().asSequence()
+                .count { !it.isDirectory && it.name.lowercase().endsWith(".apk") }
+            apkEntries > 1
+        }
+    }.getOrDefault(false)
+
+    /**
+     * XAPK files do not consistently name their primary APK `base.apk`.
+     * APKPure, for example, uses the application id (`com.example.app.apk`),
+     * while configuration splits are conventionally prefixed with `config.`.
+     */
+    private fun isBaseSplitEntry(entryName: String): Boolean {
+        val baseName = entryName.substringAfterLast('/').lowercase()
+        return baseName == "base.apk" ||
+            (baseName.endsWith(".apk") &&
+                !baseName.startsWith("config.") &&
+                !baseName.startsWith("split_"))
     }
 
     private fun downloadApk(apkUrl: String): DownloadedApk {
