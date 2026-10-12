@@ -15,6 +15,7 @@ import com.mdm2isy.agent.storage.InstallOperationState
 import com.mdm2isy.agent.storage.InstallOperationStore
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -126,6 +127,8 @@ interface AppInstaller {
 internal const val MAX_APK_MEBIBYTES = 250L
 internal const val MAX_APK_BYTES = MAX_APK_MEBIBYTES * 1024L * 1024L
 internal const val DEFAULT_INSTALL_TIMEOUT_SECONDS = 55L * 60L
+private const val DOWNLOAD_ATTEMPTS = 3
+private const val DOWNLOAD_RETRY_DELAY_MS = 2_000L
 
 class AndroidAppInstaller(private val context: Context) : AppInstaller {
     private val appContext = context.applicationContext
@@ -379,12 +382,29 @@ class AndroidAppInstaller(private val context: Context) : AppInstaller {
     }
 
     private fun downloadApk(apkUrl: String): DownloadedApk {
+        var lastNetworkError: IOException? = null
+        repeat(DOWNLOAD_ATTEMPTS) { attempt ->
+            try {
+                return downloadApkOnce(apkUrl)
+            } catch (exception: IOException) {
+                lastNetworkError = exception
+                if (attempt + 1 < DOWNLOAD_ATTEMPTS) {
+                    // A mobile connection can briefly reset a long XAPK transfer.
+                    // Retry with a short backoff while keeping the command alive.
+                    Thread.sleep(DOWNLOAD_RETRY_DELAY_MS * (attempt + 1))
+                }
+            }
+        }
+        throw lastNetworkError ?: IOException("Le téléchargement a été interrompu.")
+    }
+
+    private fun downloadApkOnce(apkUrl: String): DownloadedApk {
         val connection = URL(apkUrl).openConnection() as HttpURLConnection
         val file = File.createTempFile("mdm-install-", ".apk", appContext.cacheDir)
         try {
             connection.requestMethod = "GET"
             connection.connectTimeout = 30_000
-            connection.readTimeout = 60_000
+            connection.readTimeout = 180_000
             connection.instanceFollowRedirects = false
             connection.connect()
 
