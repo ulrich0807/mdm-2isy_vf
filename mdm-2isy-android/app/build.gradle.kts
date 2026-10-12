@@ -22,8 +22,8 @@ android {
         applicationId = "com.mdm2isy.agent"
         minSdk = 33
         targetSdk = 36
-        versionCode = 13
-        versionName = "0.1.12"
+        versionCode = 14
+        versionName = "0.1.13"
 
         testInstrumentationRunner = "android.test.InstrumentationTestRunner"
         buildConfigField("String", "DEFAULT_API_URL", "\"https://api.mdm-2isy.com/api/v1/device\"")
