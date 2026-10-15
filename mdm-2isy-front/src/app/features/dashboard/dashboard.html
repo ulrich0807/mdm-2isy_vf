@@ -1,4 +1,7 @@
 <div class="container-fluid p-0">
+  <div *ngIf="statsError" class="alert alert-warning border-0 shadow-sm rounded-3 mb-4" role="alert">
+    {{ statsError }}
+  </div>
   
   <!-- 1. Ligne des Statistiques du haut -->
   <div class="row mb-4 g-4">

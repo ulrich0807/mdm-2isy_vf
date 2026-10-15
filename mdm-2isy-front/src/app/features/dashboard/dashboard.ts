@@ -23,6 +23,7 @@ export class Dashboard implements OnInit, OnDestroy {
   inactv: number = 0;
   alrt: number = 0;
   avgBat: number = 0;
+  statsError = '';
   
   // Statistiques Licences
   totLic: number = 0;
@@ -70,7 +71,8 @@ export class Dashboard implements OnInit, OnDestroy {
     this.termSvc.getAll().subscribe({
       next: (res: any) => {
         if(res && res.success) {
-          const terminaux = res.data;
+          const terminaux = this.normalizeTerminals(res.data);
+          this.statsError = '';
           
           this.totTerm = terminaux.length;
           this.actv = terminaux.filter((t: any) => this.isOnline(t)).length;
@@ -92,8 +94,18 @@ export class Dashboard implements OnInit, OnDestroy {
           this.mapRefreshing = false;
         }
       },
-      error: () => { this.mapRefreshing = false; },
+      error: () => {
+        this.statsError = 'Les statistiques sont momentanément indisponibles. Vérifiez la connexion à l’API.';
+        this.mapRefreshing = false;
+        this.cdRef.detectChanges();
+      },
     });
+  }
+
+  private normalizeTerminals(data: any): any[] {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
   }
 
   chargerLogs() {
