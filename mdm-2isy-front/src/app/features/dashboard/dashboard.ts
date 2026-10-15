@@ -40,6 +40,8 @@ export class Dashboard implements OnInit, OnDestroy {
   mapRefreshing = false;
   mapLastUpdated: Date | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private mapRenderTimer: ReturnType<typeof setTimeout> | null = null;
+  private statsRequestId = 0;
 
   // Données dynamiques du graphe
   lineLabels: string[] = [];
@@ -61,15 +63,18 @@ export class Dashboard implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.refreshTimer) clearInterval(this.refreshTimer);
+    if (this.mapRenderTimer) clearTimeout(this.mapRenderTimer);
     if (this.chartLine) this.chartLine.destroy();
     if (this.chartPie) this.chartPie.destroy();
     if (this.map) this.map.remove();
   }
 
   chargerStatistiques(silent = false) {
+    const requestId = ++this.statsRequestId;
     this.mapRefreshing = true;
     this.termSvc.getAll().subscribe({
       next: (res: any) => {
+        if (requestId !== this.statsRequestId) return;
         if(res && res.success) {
           const terminaux = this.normalizeTerminals(res.data);
           this.statsError = '';
@@ -84,7 +89,9 @@ export class Dashboard implements OnInit, OnDestroy {
 
           this.cdRef.detectChanges(); 
           
-          setTimeout(() => {
+          if (this.mapRenderTimer) clearTimeout(this.mapRenderTimer);
+          this.mapRenderTimer = setTimeout(() => {
+            if (requestId !== this.statsRequestId) return;
             if (!silent) this.initCharts();
             this.initMap(terminaux);
             this.mapLastUpdated = new Date();
@@ -95,6 +102,7 @@ export class Dashboard implements OnInit, OnDestroy {
         }
       },
       error: () => {
+        if (requestId !== this.statsRequestId) return;
         this.statsError = 'Les statistiques sont momentanément indisponibles. Vérifiez la connexion à l’API.';
         this.mapRefreshing = false;
         this.cdRef.detectChanges();
